@@ -138,21 +138,30 @@ th.num{text-align:right}
   border:1px solid var(--border);transition:background .15s;overflow:hidden}
 .player-row.dnb-row{background:#F0F9FF;border-color:#BAE6FD}
 .player-row.notout-row{background:#F0FDF4;border-color:#86EFAC}
-.player-row.voted-row{background:#FFFBEB;border-color:#FDE68A}
-.pr-top{display:grid;grid-template-columns:28px 1fr auto auto 32px;
-  gap:8px;align-items:center;padding:8px 12px 6px}
-.pr-bottom{display:grid;grid-template-columns:repeat(4,1fr) 8px repeat(4,1fr) repeat(3,42px);
-  gap:4px;padding:6px 12px 8px;background:rgba(0,0,0,.018);border-top:1px solid var(--border)}
-.pr-bottom .pr-sep{border-left:1.5px dashed var(--border);margin:0 2px}
-.pr-bat-dnb{display:flex;align-items:center;gap:6px}
+/* Row A: # · name · Ct · RO · St · ✕ */
+.pr-top{display:grid;grid-template-columns:26px minmax(0,1fr) 44px 44px 44px 30px;
+  gap:6px;align-items:center;padding:7px 10px 5px}
+/* Row B: [Pos/DNB/N/O] · Runs · Balls · 4s · 6s */
+.pr-bottom{display:grid;grid-template-columns:auto repeat(4,1fr);
+  gap:4px;align-items:end;padding:4px 10px 4px;background:rgba(0,0,0,.018);border-top:1px solid var(--border)}
+/* Row C: bowling — always visible, fields disabled until Did Bowl checked */
+.pr-bowling{display:grid;grid-template-columns:auto repeat(4,1fr);
+  gap:4px;align-items:end;padding:4px 10px 7px;background:#EFF6FF;border-top:1px dashed #BFDBFE}
+.pr-bowl-toggle{padding:2px 8px 2px 6px;border-radius:20px;font-size:11px;font-weight:600;
+  cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--ink3);
+  display:flex;align-items:center;gap:4px;white-space:nowrap;transition:all .15s;height:28px}
+.pr-bowl-toggle:hover{border-color:var(--blu);color:var(--blu)}
+.pr-bowl-toggle.bowled{background:var(--blu-l);border-color:var(--blu);color:var(--blu)}
+.pr-bowl-toggle input[type=checkbox]{width:13px;height:13px;accent-color:var(--blu);cursor:pointer}
+.pr-name-input{min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.pr-bat-dnb{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .player-row .row-num{font-size:15px;font-weight:800;color:var(--ink4);
   font-family:'Barlow Condensed',sans-serif;line-height:1}
-.player-row .field label{font-size:10px}
 .pr-col-lbl{font-size:9px;font-weight:700;color:var(--ink4);text-transform:uppercase;
   letter-spacing:.05em;text-align:center;margin-bottom:2px}
-.dnb-toggle{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
-  color:var(--ink3);cursor:pointer;align-self:flex-end;padding-bottom:10px;white-space:nowrap}
-.dnb-toggle input[type=checkbox]{width:14px;height:14px;accent-color:var(--blu);cursor:pointer}
+.dnb-toggle{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+  color:var(--ink3);cursor:pointer;white-space:nowrap}
+.dnb-toggle input[type=checkbox]{width:13px;height:13px;accent-color:var(--blu);cursor:pointer}
 .dnb-toggle.active{color:var(--blu)}
 .field input:disabled{background:#F1F5F9;color:var(--ink4);cursor:not-allowed}
 /* voted section */
@@ -1884,42 +1893,74 @@ function addPlayerRow(data = {}) {
   const n = `inputmode="numeric" pattern="[0-9]*"`;
   const nd = `inputmode="decimal" pattern="[0-9.]*"`;
 
+  // Determine if this player bowled (has overs data)
+  const didBowl = data.overs > 0 || data.wkts > 0 || data.runsGiven > 0;
+
   div.innerHTML = `
+    <!-- Row A: # · Name (truncated) · Ct · RO · St · ✕ -->
     <div class="pr-top">
       <div class="row-num">${playerRowCount}</div>
-      <input placeholder="Player name" class="pr-name" value="${data.name||''}"
-        list="player-names-list" autocomplete="off" style="font-weight:600;min-width:0"
+      <input placeholder="Player name" class="pr-name pr-name-input" value="${data.name||''}"
+        list="player-names-list" autocomplete="off"
         oninput="onPlayerNameInput('${id}', this.value)"/>
-      <div class="pr-bat-dnb">
-        <input type="number" ${n} placeholder="Pos" min="1" max="11" class="pr-bat"
-          value="${batVal}" data-prev-val="${batVal}"${isDNB?' disabled':''}
-          style="width:48px;text-align:center"
-          oninput="onBatPosChange('${id}', this.value)"
-          onchange="onBatPosChange('${id}', this.value)"/>
-        <label class="dnb-toggle${isDNB?' active':''}" title="Did not bat">
-          <input type="checkbox" class="pr-dnb" onchange="toggleDNB('${id}',this.checked)"${isDNB?' checked':''}> DNB
+      <div style="display:flex;flex-direction:column">
+        <div class="pr-col-lbl" style="color:var(--blu)">Ct</div>
+        <input type="number" ${n} placeholder="" min="0" class="pr-catches"
+          value="${data.catches!==undefined&&data.catches!==''?data.catches:''}" style="border-color:#BFDBFE"/>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <div class="pr-col-lbl" style="color:var(--blu)">RO</div>
+        <input type="number" ${n} placeholder="" min="0" class="pr-runouts"
+          value="${data.runOuts!==undefined&&data.runOuts!==''?data.runOuts:''}" style="border-color:#BFDBFE"/>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <div class="pr-col-lbl" style="color:var(--blu)">St</div>
+        <input type="number" ${n} placeholder="" min="0" class="pr-stumpings"
+          value="${data.stumpings!==undefined&&data.stumpings!==''?data.stumpings:''}" style="border-color:#BFDBFE"/>
+      </div>
+      <button class="btn btn-danger btn-sm" style="padding:2px 8px;font-size:12px" onclick="removeRow('${id}')">✕</button>
+    </div>
+    <!-- Row B: [Pos/DNB/N/O] · Runs · Balls · 4s · 6s -->
+    <div class="pr-bottom">
+      <div class="pr-bat-dnb" style="padding-bottom:1px">
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <div class="pr-col-lbl">Pos</div>
+          <input type="number" ${n} placeholder="" min="1" max="11" class="pr-bat"
+            value="${batVal}" data-prev-val="${batVal}"${isDNB?' disabled':''}
+            style="width:40px;text-align:center"
+            oninput="onBatPosChange('${id}', this.value)"
+            onchange="onBatPosChange('${id}', this.value)"/>
+        </div>
+        <label class="dnb-toggle${isDNB?' active':''}" title="Did not bat" style="margin-left:4px">
+          <input type="checkbox" class="pr-dnb" onchange="toggleDNB('${id}',this.checked)"${isDNB?' checked':''}>DNB
         </label>
         <label class="dnb-toggle${isNO?' active':''}" title="Not Out (+10 pts)"
-          style="color:var(--grn-d);margin-left:4px;${isDNB?' opacity:.3;pointer-events:none':''}">
+          style="color:var(--grn-d);${isDNB?' opacity:.3;pointer-events:none':''}">
           <input type="checkbox" class="pr-notout" onchange="toggleNotOut('${id}',this.checked)"
-            ${isNO?' checked':''}${isDNB?' disabled':''} style="accent-color:var(--grn)"> N/O
+            ${isNO?' checked':''}${isDNB?' disabled':''} style="accent-color:var(--grn)">N/O
         </label>
       </div>
-      <button class="btn btn-danger btn-sm" style="padding:3px 9px;font-size:12px" onclick="removeRow('${id}')">✕</button>
-    </div>
-    <div class="pr-bottom">
       <div><div class="pr-col-lbl">Runs</div><input type="number" ${n} placeholder="" min="0" class="pr-runs" value="${runVal}"${disAttr}/></div>
       <div><div class="pr-col-lbl">Balls</div><input type="number" ${n} placeholder="" min="0" class="pr-balls" value="${ballVal}"${disAttr}/></div>
       <div><div class="pr-col-lbl">4s</div><input type="number" ${n} placeholder="" min="0" class="pr-fours" value="${fourVal}"${disAttr}/></div>
       <div><div class="pr-col-lbl">6s</div><input type="number" ${n} placeholder="" min="0" class="pr-sixes" value="${sixVal}"${disAttr}/></div>
-      <div class="pr-sep"></div>
-      <div><div class="pr-col-lbl">Overs</div><input type="number" ${nd} placeholder="" min="0" step="0.1" class="pr-overs" value="${data.overs!==undefined?data.overs:''}"/></div>
-      <div><div class="pr-col-lbl">Runs Gvn</div><input type="number" ${n} placeholder="" min="0" class="pr-runs-given" value="${data.runsGiven!==undefined?data.runsGiven:''}"/></div>
-      <div><div class="pr-col-lbl">Wkts</div><input type="number" ${n} placeholder="" min="0" class="pr-wkts" value="${data.wkts!==undefined?data.wkts:''}"/></div>
-      <div><div class="pr-col-lbl" style="color:var(--red)">Extras</div><input type="number" ${n} placeholder="" min="0" class="pr-extras" value="${data.extras!==undefined?data.extras:''}" style="border-color:#FECACA"/></div>
-      <div><div class="pr-col-lbl" style="color:var(--blu)">Ct</div><input type="number" ${n} placeholder="" min="0" class="pr-catches" value="${data.catches!==undefined?data.catches:''}" style="border-color:#BFDBFE"/></div>
-      <div><div class="pr-col-lbl" style="color:var(--blu)">RO</div><input type="number" ${n} placeholder="" min="0" class="pr-runouts" value="${data.runOuts!==undefined?data.runOuts:''}" style="border-color:#BFDBFE"/></div>
-      <div><div class="pr-col-lbl" style="color:var(--blu)">St</div><input type="number" ${n} placeholder="" min="0" class="pr-stumpings" value="${data.stumpings!==undefined?data.stumpings:''}" style="border-color:#BFDBFE"/></div>
+    </div>
+    <!-- Row C: Bowl? toggle + bowling stats (always visible, disabled until ticked) -->
+    <div class="pr-bowling">
+      <label class="pr-bowl-toggle${didBowl?' bowled':''}" title="Tick if this player bowled"
+        style="align-self:flex-end;margin-bottom:1px">
+        <input type="checkbox" class="pr-bowled" onchange="toggleBowled('${id}',this.checked)"${didBowl?' checked':''}
+          style="accent-color:var(--blu)">
+        🏏 Bowl?
+      </label>
+      <div><div class="pr-col-lbl">Overs</div><input type="number" ${nd} placeholder="" min="0" step="0.1" class="pr-overs"
+        value="${data.overs!==undefined&&data.overs!==''?data.overs:''}"${didBowl?'':' disabled'}/></div>
+      <div><div class="pr-col-lbl">Runs Gvn</div><input type="number" ${n} placeholder="" min="0" class="pr-runs-given"
+        value="${data.runsGiven!==undefined&&data.runsGiven!==''?data.runsGiven:''}"${didBowl?'':' disabled'}/></div>
+      <div><div class="pr-col-lbl">Wkts</div><input type="number" ${n} placeholder="" min="0" class="pr-wkts"
+        value="${data.wkts!==undefined&&data.wkts!==''?data.wkts:''}"${didBowl?'':' disabled'}/></div>
+      <div><div class="pr-col-lbl" style="color:var(--red)">Extras (W+NB)</div><input type="number" ${n} placeholder="" min="0" class="pr-extras"
+        value="${data.extras!==undefined&&data.extras!==''?data.extras:''}"${didBowl?'':' disabled'} style="border-color:#FECACA"/></div>
     </div>`;
   document.getElementById('players-container').appendChild(div);
 }
@@ -2019,6 +2060,20 @@ function toggleNotOut(rowId, checked) {
   if (noLabel) noLabel.classList.toggle('active', checked);
 }
 
+function toggleBowled(rowId, checked) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  const bowlToggle = row.querySelector('.pr-bowled')?.closest('label');
+  if (bowlToggle) bowlToggle.classList.toggle('bowled', checked);
+  // Enable/disable bowling fields (same pattern as DNB for batting)
+  const bowlFields = ['.pr-overs', '.pr-runs-given', '.pr-wkts', '.pr-extras']
+    .map(sel => row.querySelector(sel)).filter(Boolean);
+  bowlFields.forEach(f => {
+    f.disabled = !checked;
+    if (!checked) f.value = '';
+  });
+}
+
 function addVotedRow(data = {}) {
   votedRowCount++;
   const id = `vr-${votedRowCount}`;
@@ -2048,7 +2103,8 @@ function removeRow(id) {
 
 function getPlayerRows() {
   return [...document.querySelectorAll('.player-row')].map(row => {
-    const dnb = row.querySelector('.pr-dnb')?.checked || false;
+    const dnb    = row.querySelector('.pr-dnb')?.checked || false;
+    const bowled = row.querySelector('.pr-bowled')?.checked || false;
     return {
       name:      row.querySelector('.pr-name').value.trim(),
       dnb,
@@ -2058,13 +2114,15 @@ function getPlayerRows() {
       balls:     dnb ? null : (+row.querySelector('.pr-balls').value || 0),
       fours:     dnb ? null : (+row.querySelector('.pr-fours').value || 0),
       sixes:     dnb ? null : (+row.querySelector('.pr-sixes').value || 0),
-      overs:     +row.querySelector('.pr-overs').value || 0,
-      wkts:      +row.querySelector('.pr-wkts').value || 0,
-      runsGiven: +row.querySelector('.pr-runs-given').value || 0,
-      extras:    +row.querySelector('.pr-extras').value || 0,
-      catches:   +row.querySelector('.pr-catches').value || 0,
-      runOuts:   +row.querySelector('.pr-runouts').value || 0,
-      stumpings: +row.querySelector('.pr-stumpings').value || 0,
+      // Fielding — always captured, default 0 if blank
+      catches:   +row.querySelector('.pr-catches')?.value || 0,
+      runOuts:   +row.querySelector('.pr-runouts')?.value || 0,
+      stumpings: +row.querySelector('.pr-stumpings')?.value || 0,
+      // Bowling — only captured when "Did Bowl?" is checked
+      overs:     bowled ? (+row.querySelector('.pr-overs').value || 0)      : 0,
+      wkts:      bowled ? (+row.querySelector('.pr-wkts').value || 0)       : 0,
+      runsGiven: bowled ? (+row.querySelector('.pr-runs-given').value || 0) : 0,
+      extras:    bowled ? (+row.querySelector('.pr-extras').value || 0)     : 0,
     };
   }).filter(p => p.name);
 }
