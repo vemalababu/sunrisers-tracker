@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MTCA Sunrisers — Squad Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset & Base ─────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sun:#F59E0B;--sun-d:#D97706;--sun-l:#FEF3C7;
+  --grn:#16A34A;--grn-d:#15803D;--grn-l:#DCFCE7;
+  --red:#DC2626;--red-l:#FEE2E2;
+  --blu:#2563EB;--blu-l:#DBEAFE;
+  --ink:#0F172A;--ink2:#334155;--ink3:#64748B;--ink4:#94A3B8;
+  --bg:#F8FAFC;--card:#FFFFFF;--border:#E2E8F0;
+  --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px}
+
+/* ── Layout ───────────────────────────────────────── */
+.app{max-width:1100px;margin:0 auto;padding:0 16px 60px}
+
+/* ── Header ───────────────────────────────────────── */
+.site-header{
+  background:linear-gradient(135deg,#0F172A 0%,#1E3A5F 60%,#0F4C2A 100%);
+  color:#fff;padding:28px 32px 24px;border-radius:0 0 20px 20px;
+  margin-bottom:28px;position:relative;overflow:hidden;
+}
+.site-header::before{
+  content:'☀';position:absolute;right:32px;top:16px;font-size:72px;
+  opacity:.08;line-height:1;
+}
+.site-header h1{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;letter-spacing:.5px;line-height:1}
+.site-header p{font-size:13px;opacity:.65;margin-top:4px}
+.header-meta{display:flex;gap:16px;margin-top:14px;flex-wrap:wrap}
+.meta-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+  border-radius:20px;padding:4px 12px;font-size:12px;font-weight:500}
+.meta-pill span{color:var(--sun);font-weight:700}
+
+/* ── Nav tabs ─────────────────────────────────────── */
+.nav{display:flex;gap:4px;margin-bottom:20px;background:var(--card);
+  border-radius:var(--radius);padding:6px;box-shadow:var(--shadow);overflow-x:auto}
+.nav-btn{flex:1;min-width:90px;padding:9px 12px;border:none;background:none;cursor:pointer;
+  border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+  color:var(--ink3);white-space:nowrap;transition:all .15s}
+.nav-btn:hover{background:var(--bg);color:var(--ink)}
+.nav-btn.active{background:var(--ink);color:#fff}
+
+/* ── Panels ───────────────────────────────────────── */
+.panel{display:none}.panel.active{display:block}
+
+/* ── Cards ────────────────────────────────────────── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  border:1px solid var(--border);padding:20px;margin-bottom:16px}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;
+  letter-spacing:.3px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title .icon{font-size:20px}
+
+/* ── Metrics row ──────────────────────────────────── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:640px){.metrics{grid-template-columns:repeat(2,1fr)}}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow)}
+.metric .m-val{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:var(--ink);line-height:1}
+.metric .m-label{font-size:11px;color:var(--ink3);margin-top:2px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.metric .m-sub{font-size:11px;color:var(--ink4);margin-top:3px}
+
+/* ── Tables ───────────────────────────────────────── */
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:#F1F5F9;padding:10px 12px;text-align:left;font-weight:600;
+  font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;
+  border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#FAFAFA}
+td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+th.num{text-align:right}
+
+/* ── Score bars ───────────────────────────────────── */
+.score-wrap{display:flex;align-items:center;gap:8px;min-width:110px}
+.bar-bg{flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.score-num{font-size:13px;font-weight:700;min-width:28px;text-align:right}
+.s-green .bar-fill{background:var(--grn)}.s-green .score-num{color:var(--grn-d)}
+.s-amber .bar-fill{background:var(--sun)}.s-amber .score-num{color:var(--sun-d)}
+.s-red   .bar-fill{background:var(--red)}.s-red   .score-num{color:var(--red)}
+
+/* ── Badges ───────────────────────────────────────── */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-green{background:var(--grn-l);color:var(--grn-d)}
+.b-amber{background:var(--sun-l);color:var(--sun-d)}
+.b-red{background:var(--red-l);color:var(--red)}
+.b-blue{background:var(--blu-l);color:var(--blu)}
+.b-gray{background:#F1F5F9;color:var(--ink3)}
+.b-must{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+/* ── Forms ────────────────────────────────────────── */
+.form-grid{display:grid;gap:12px}
+.form-grid.g2{grid-template-columns:1fr 1fr}
+.form-grid.g3{grid-template-columns:1fr 1fr 1fr}
+.form-grid.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+@media(max-width:600px){.form-grid.g2,.form-grid.g3,.form-grid.g4{grid-template-columns:1fr 1fr}}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--ink3);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.field input,.field select{width:100%;padding:9px 11px;border:1.5px solid var(--border);
+  border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;
+  background:#fff;color:var(--ink);transition:border-color .15s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--grn);
+  box-shadow:0 0 0 3px rgba(22,163,74,.1)}
+.field input::placeholder{color:var(--ink4)}
+
+/* ── Buttons ──────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;
+  font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);
+  background:var(--card);color:var(--ink);font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn:hover{background:var(--bg);border-color:var(--ink4)}
+.btn-primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-primary:hover{background:#1E293B}
+.btn-green{background:var(--grn);color:#fff;border-color:var(--grn)}
+.btn-green:hover{background:var(--grn-d)}
+.btn-amber{background:var(--sun);color:#fff;border-color:var(--sun-d)}
+.btn-danger{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-danger:hover{background:#B91C1C}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* ── Section separators ───────────────────────────── */
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--ink3);margin:20px 0 10px;padding-left:2px}
+.divider{height:1px;background:var(--border);margin:16px 0}
+
+/* ── Player entry row ─────────────────────────────── */
+.player-row{background:var(--bg);border-radius:8px;margin-bottom:6px;
+  border:1px solid var(--border);transition:background .15s;overflow:hidden}
+.player-row.dnb-row{background:#F0F9FF;border-color:#BAE6FD}
+.player-row.notout-row{background:#F0FDF4;border-color:#86EFAC}
+.player-row.voted-row{background:#FFFBEB;border-color:#FDE68A}
+.pr-top{display:grid;grid-template-columns:28px 1fr auto auto 32px;
+  gap:8px;align-items:center;padding:8px 12px 6px}
+.pr-bottom{display:grid;grid-template-columns:repeat(4,1fr) 8px repeat(4,1fr) repeat(3,42px);
+  gap:4px;padding:6px 12px 8px;background:rgba(0,0,0,.018);border-top:1px solid var(--border)}
+.pr-bottom .pr-sep{border-left:1.5px dashed var(--border);margin:0 2px}
+.pr-bat-dnb{display:flex;align-items:center;gap:6px}
+.player-row .row-num{font-size:15px;font-weight:800;color:var(--ink4);
+  font-family:'Barlow Condensed',sans-serif;line-height:1}
+.player-row .field label{font-size:10px}
+.pr-col-lbl{font-size:9px;font-weight:700;color:var(--ink4);text-transform:uppercase;
+  letter-spacing:.05em;text-align:center;margin-bottom:2px}
+.dnb-toggle{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  color:var(--ink3);cursor:pointer;align-self:flex-end;padding-bottom:10px;white-space:nowrap}
+.dnb-toggle input[type=checkbox]{width:14px;height:14px;accent-color:var(--blu);cursor:pointer}
+.dnb-toggle.active{color:var(--blu)}
+.field input:disabled{background:#F1F5F9;color:var(--ink4);cursor:not-allowed}
+/* voted section */
+.voted-section{margin-top:20px;padding-top:16px;border-top:2px dashed #FDE68A}
+.voted-section-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;
+  color:var(--sun-d);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.voted-hint{font-size:12px;color:var(--ink3);margin-bottom:12px}
+.voted-player-row{display:grid;grid-template-columns:auto 1fr 130px 1fr 32px;
+  gap:8px;align-items:end;padding:10px 12px;background:var(--sun-l);
+  border-radius:8px;margin-bottom:6px;border:1px solid #FDE68A}
+.voted-player-row .row-num{font-size:15px;font-weight:800;color:var(--sun-d);
+  font-family:'Barlow Condensed',sans-serif;align-self:flex-end;padding-bottom:9px}
+.voted-player-row .field label{font-size:10px}
+
+/* ── Priority players ─────────────────────────────── */
+.priority-item{display:flex;align-items:center;gap:10px;padding:12px 14px;
+  background:var(--sun-l);border:1px solid #FDE68A;border-radius:10px;margin-bottom:8px}
+.priority-item.must{background:var(--red-l);border-color:#FECACA}
+.priority-rank{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;
+  color:var(--sun-d);min-width:28px}
+.priority-info{flex:1}
+.priority-name{font-weight:600;font-size:14px}
+.priority-meta{font-size:12px;color:var(--ink3);margin-top:2px}
+.priority-actions{display:flex;gap:6px;align-items:center}
+
+/* ── Recommended XI ───────────────────────────────── */
+.xi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:480px){.xi-grid{grid-template-columns:1fr}}
+.xi-item{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--bg);border:1px solid var(--border);border-radius:8px}
+.xi-num{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--ink4);min-width:22px}
+.xi-name{flex:1;font-weight:600;font-size:13px}
+.xi-score{font-size:12px;font-weight:700}
+.xi-item.priority{background:#FFFBEB;border-color:#FDE68A}
+.xi-item.must-pick{background:#FEF2F2;border-color:#FECACA}
+
+/* ── Toast ────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;
+  font-weight:500;opacity:0;pointer-events:none;transition:all .3s;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Info box ─────────────────────────────────────── */
+.info-box{background:var(--blu-l);border:1px solid #BFDBFE;border-radius:8px;
+  padding:10px 14px;font-size:12px;color:var(--blu);margin-bottom:14px}
+.info-box strong{font-weight:700}
+
+/* ── Hide number input spinners ──────────────────────── */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+
+/* ── Column picker chips ──────────────────────────────── */
+.col-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;
+  font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);
+  background:var(--card);color:var(--ink3);user-select:none;transition:all .15s}
+.col-chip:hover{border-color:var(--grn);color:var(--grn)}
+.col-chip.on{background:var(--grn-l);border-color:var(--grn);color:var(--grn-d)}
+.col-chip.on::before{content:'✓ '}
+.col-chip.locked{opacity:.5;cursor:default;pointer-events:none}
+
+/* ── Auth / Login ─────────────────────────────────── */
+.login-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.login-box{background:var(--card);border-radius:16px;padding:32px 28px;width:320px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center}
+.login-box h2{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px}
+.login-box p{font-size:13px;color:var(--ink3);margin-bottom:20px}
+.login-box input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:18px;letter-spacing:6px;text-align:center;font-family:monospace;margin-bottom:12px}
+.login-box input:focus{outline:none;border-color:var(--grn)}
+.login-error{color:var(--red);font-size:12px;margin:0 0 10px;display:none}
+.role-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+  border-radius:20px;font-size:11px;font-weight:600}
+.role-admin{background:#DCFCE7;color:#15803D}
+.role-viewer{background:#F1F5F9;color:var(--ink3)}
+
+/* ── Datalist autocomplete ────────────────────────────────── */
+input[list]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
+.pr-name, .vr-name { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394A3B8'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px; }
+.import-step{margin-bottom:4px}
+.step-label{font-size:13px;font-weight:600;color:#4338CA;display:flex;align-items:center;gap:8px}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+  border-radius:50%;background:#4F46E5;color:#fff;font-size:11px;font-weight:700;flex-shrink:0}
+.fetch-ok{color:var(--grn);font-weight:600}
+.fetch-warn{color:var(--sun-d);font-weight:600}
+.fetch-err{color:var(--red);font-weight:600}
+kbd{font-family:monospace}
+
+/* ── Pool checkboxes ──────────────────────────────── */
+.pool-item{display:flex;align-items:center;gap:8px;padding:8px 12px;
+  border:1.5px solid var(--border);border-radius:8px;cursor:pointer;
+  background:var(--card);transition:all .15s;user-select:none}
+.pool-item:hover{border-color:var(--grn);background:var(--grn-l)}
+.pool-item.checked{border-color:var(--grn);background:var(--grn-l)}
+.pool-item.priority-pool{border-color:#FDE68A;background:var(--sun-l)}
+.pool-item.priority-pool.checked{border-color:var(--sun-d);background:#FEF3C7}
+.pool-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--grn);cursor:pointer;flex-shrink:0}
+.pool-name{font-size:13px;font-weight:500;flex:1}
+.pool-score{font-size:12px;font-weight:700;color:var(--ink3)}
+.rank{display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:700}
+.rank-1{background:#FEF3C7;color:#92400E}
+.rank-2{background:#F1F5F9;color:#475569}
+.rank-3{background:#FED7AA;color:#9A3412}
+
+/* ── Empty state ──────────────────────────────────── */
+.empty{text-align:center;padding:40px 20px;color:var(--ink3)}
+.empty .e-icon{font-size:40px;margin-bottom:10px}
+.empty p{font-size:13px}
+
+/* ── Mobile nav ───────────────────────────────────── */
+@media(max-width:500px){.nav-btn{font-size:11px;padding:8px 8px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<div class="site-header">
+  <h1>☀ MTCA Sunrisers Manteca</h1>
+  <p>Squad Intelligence · Opportunity & Performance Tracker</p>
+  <div class="header-meta">
+    <div class="meta-pill">Matches: <span id="hdr-matches">0</span></div>
+    <div class="meta-pill">Players: <span id="hdr-players">0</span></div>
+    <div class="meta-pill">Priority queue: <span id="hdr-priority">0</span></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span id="sync-badge" style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;background:#F1F5F9;color:#64748B;cursor:pointer" onclick="isAdmin&&setupJSONBin()" title="Click to configure cloud sync (admin only)">☁ Cloud: not configured</span>
+      <span id="role-badge" class="role-badge role-viewer">👁 Viewer</span>
+      <button id="auth-btn" onclick="handleAuthBtn()"
+        style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff">
+        Admin Login
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="login-overlay" style="display:none">
+  <div class="login-box">
+    <div style="font-size:36px;margin-bottom:8px">🔐</div>
+    <h2>Admin Login</h2>
+    <p>Enter the admin PIN to enable match management</p>
+    <input type="password" id="pin-input" maxlength="6" placeholder="••••"
+      onkeydown="if(event.key==='Enter')checkPin()"
+      oninput="document.getElementById('login-error').style.display='none'"/>
+    <div class="login-error" id="login-error">Incorrect PIN — try again</div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="checkPin()">Unlock</button>
+    <button class="btn" style="width:100%;justify-content:center;margin-top:8px" onclick="closeLogin()">Continue as Viewer</button>
+    <div style="font-size:11px;color:var(--ink4);margin-top:14px">Viewers can see all data · Only admins can add or edit matches</div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nav-btn active" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+  <button class="nav-btn" id="nav-add-match" onclick="switchTab('add-match',this)">➕ Add Match</button>
+  <button class="nav-btn" onclick="switchTab('scores',this)">🏏 Player Scores</button>
+  <button class="nav-btn" onclick="switchTab('selection',this)">📋 Next XII</button>
+</div>
+
+<!-- ═══ DASHBOARD ════════════════════════════════════════ -->
+<div id="tab-dashboard" class="panel active">
+  <div class="metrics">
+    <div class="metric"><div class="m-val" id="m-matches">0</div><div class="m-label">Matches</div><div class="m-sub">Total loaded</div></div>
+    <div class="metric"><div class="m-val" id="m-players">0</div><div class="m-label">Players</div><div class="m-sub">Unique tracked</div></div>
+    <div class="metric"><div class="m-val" id="m-avg-opp">—</div><div class="m-label">Avg Opportunity</div><div class="m-sub">Out of 100</div></div>
+    <div class="metric"><div class="m-val" id="m-avg-perf">—</div><div class="m-label">Avg Performance</div><div class="m-sub">Out of 100</div></div>
+  </div>
+
+  <div id="dash-empty" class="card">
+    <div class="empty">
+      <div class="e-icon">🏏</div>
+      <p><strong>No match data yet.</strong><br>Go to <em>Add Match</em> to enter your first scorecard.</p>
+    </div>
+  </div>
+
+  <div id="dash-content" style="display:none">
+    <div class="card">
+      <div class="card-title"><span class="icon">🏅</span> Top 5 Players — Combined Score</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Player</th><th class="num">Opp</th><th class="num">Perf</th><th class="num">Combined</th></tr></thead>
+          <tbody id="dash-top5"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📅</span> Recent Matches</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Match ID</th><th>Date</th><th>Opponent</th><th class="num">Our Total</th><th>Result</th><th class="num">Players</th><th></th></tr></thead>
+          <tbody id="dash-matches"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADD MATCH ════════════════════════════════════════ -->
+<div id="tab-add-match" class="panel">
+
+  <!-- CRICCLUBS IMPORT — hidden by default (paste method unreliable) -->
+  <div style="margin-bottom:12px">
+    <button class="btn btn-sm" onclick="toggleImportCard()" id="import-toggle-btn"
+      style="font-size:12px;color:var(--ink3)">🔗 Import from CricClubs (expand)</button>
+  </div>
+  <div id="cricclubs-import-card" style="display:none">
+    <div class="card" style="border-color:#6366F1;background:linear-gradient(135deg,#EEF2FF 0%,#fff 100%)">
+
+    <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:9px 13px;font-size:12px;color:#991B1B;margin-bottom:14px">
+      <strong>Note:</strong> CricClubs blocks automated access (HTTP 403 — login required). Use the guided copy-paste below — takes about 30 seconds.
+    </div>
+
+    <!-- Step 1: URL to pre-fill Match ID -->
+    <div class="step-label"><span class="step-num">1</span> Paste scorecard URL — auto-fills Match ID</div>
+    <input id="cc-url" placeholder="https://cricclubs.com/…/viewScorecard.do?matchId=3000&clubId=14653"
+      style="width:100%;margin-top:8px;padding:9px 12px;border:1.5px solid #A5B4FC;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif"
+      oninput="extractMatchIdFromUrl(this.value)"/>
+    <div id="url-id-hint" style="font-size:11px;color:var(--grn-d);margin-top:4px;display:none"></div>
+
+    <div style="height:1px;background:#C7D2FE;margin:14px 0"></div>
+
+    <!-- Step 2: Copy the table -->
+    <div class="step-label" style="margin-bottom:10px"><span class="step-num">2</span> Copy the scorecard table from your browser</div>
+    <div style="background:#1E1E2E;border-radius:8px;padding:12px 16px;font-size:12px;font-family:monospace;color:#CDD6F4;line-height:2.2">
+      <span style="color:#89DCEB">a)</span> Open the URL above in Chrome / Safari / Firefox<br>
+      <span style="color:#89DCEB">b)</span> Wait for the scorecard to load fully<br>
+      <span style="color:#89DCEB">c)</span> <span style="color:#F9E2AF;font-weight:600">Click on "Arun Kumar" (first player name) in the batting table</span><br>
+      <span style="color:#89DCEB">d)</span> <span style="color:#F9E2AF;font-weight:600">Hold Shift and click the last number in the bowling table</span><br>
+      <span style="color:#89DCEB">e)</span> Press <kbd style="background:#313244;padding:1px 6px;border-radius:4px;color:#CDD6F4">Ctrl+C</kbd> &nbsp;(Mac: <kbd style="background:#313244;padding:1px 6px;border-radius:4px;color:#CDD6F4">Cmd+C</kbd>)<br>
+      <span style="color:#6C7086;font-size:11px">Tip: Right-click the scorecard area → "Select All" also works in some browsers</span>
+    </div>
+
+    <!-- Step 3: Paste -->
+    <div style="margin-top:12px">
+      <div class="step-label" style="margin-bottom:8px"><span class="step-num">3</span> Paste the copied text here</div>
+      <textarea id="cc-paste" rows="7"
+        placeholder="Paste here. Should look like:&#10;&#10;Arun Kumar  c Smith b Jones  38  32  4  1  118.75&#10;Vijay Sharma  b Wilson  22  20  2  0  110.00&#10;Ravi Teja  not out  31  28  3  1  110.71&#10;...&#10;&#10;Arun Kumar  3  0  22  1  2  1  7.33&#10;Vijay Sharma  4  0  28  2  3  1  7.00"
+        style="width:100%;padding:10px 12px;border:1.5px solid #A5B4FC;border-radius:8px;font-size:12px;font-family:monospace;resize:vertical;background:#fff;line-height:1.6"
+        oninput="livePreviewPaste(this.value)"></textarea>
+    </div>
+
+    <!-- Live preview -->
+    <div id="paste-preview" style="display:none;margin-top:10px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:10px 14px">
+      <div style="font-size:11px;font-weight:700;color:var(--grn-d);margin-bottom:6px">👁 Live preview — players detected as you type:</div>
+      <div id="paste-preview-list" style="font-size:12px;color:var(--ink2);line-height:2;font-family:monospace"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn" style="background:#4F46E5;color:#fff;border-color:#4338CA;font-size:14px;padding:10px 20px" onclick="parsePastedHTML()">
+        ✅ Parse & Fill Form
+      </button>
+      <button class="btn btn-sm" onclick="document.getElementById('cc-paste').value='';document.getElementById('paste-preview').style.display='none'">✕ Clear</button>
+      <span style="font-size:11px;color:var(--ink3);margin-left:4px">The form below auto-fills — just review and save.</span>
+    </div>
+
+    <div id="import-result" style="display:none;margin-top:10px"></div>
+    <div id="fetch-status" style="margin-top:8px;font-size:12px;display:none"></div>
+  </div><!-- end card -->
+  </div><!-- end cricclubs-import-card -->
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📋</span> <span id="match-form-title">Match Details</span>
+      <span id="edit-mode-badge" style="display:none;font-size:12px;font-weight:500;background:var(--sun-l);color:var(--sun-d);border:1px solid #FDE68A;border-radius:20px;padding:2px 10px;margin-left:8px">Editing match</span>
+    </div>
+    <div class="form-grid g3">
+      <div class="field"><label>Match ID / No.</label><input id="am-id" placeholder="e.g. 3020"/></div>
+      <div class="field"><label>Date</label><input id="am-date" type="date"/></div>
+      <div class="field"><label>Opponent Team</label><input id="am-opp" placeholder="e.g. MTCA Warriors"/></div>
+    </div>
+    <div class="form-grid g2" style="margin-top:12px">
+      <div class="field"><label>Our Team Total (Runs)</label><input id="am-total" type="number" placeholder="e.g. 148" min="0"/></div>
+      <div class="field"><label>Match Result</label>
+        <select id="am-result"><option value="">— Select —</option><option>Won</option><option>Lost</option><option>Tied</option><option>No Result</option></select>
+      </div>
+    </div>
+    <!-- Impact Players — match level, max 1 in + 1 out -->
+    <div style="margin-top:14px;padding:12px 14px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:10px">
+      <div style="font-size:12px;font-weight:700;color:#6D28D9;margin-bottom:8px">⚡ Impact Players <span style="font-weight:400;color:#7C3AED">(optional — max 1 Impact-In + 1 Impact-Out per match)</span></div>
+      <div class="form-grid g2">
+        <div class="field">
+          <label style="color:#6D28D9">Impact-In (substitute who came in)</label>
+          <input id="am-impact-in" list="player-names-list" placeholder="Player name — only bowled or batted" autocomplete="off"/>
+          <div style="font-size:11px;color:#7C3AED;margin-top:3px">This player gets 15% reduced Opportunity score</div>
+        </div>
+        <div class="field">
+          <label style="color:#6D28D9">Impact-Out (player who was replaced)</label>
+          <input id="am-impact-out" list="player-names-list" placeholder="Player name — left mid-match" autocomplete="off"/>
+          <div style="font-size:11px;color:#7C3AED;margin-top:3px">This player also gets 15% reduced Opportunity score</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">🧑‍🤝‍🧑</span> Player Performances</div>
+    <div class="info-box">
+      Enter stats for each player. <strong>Bat Position</strong> = batting order (1–11). Leave overs/wickets as 0 if player didn't bowl.
+    </div>
+
+    <div id="players-container"></div>
+
+    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn" onclick="addPlayerRow()">+ Add Player</button>
+    </div>
+
+    <!-- VOTED BUT NOT SELECTED SECTION -->
+    <div class="voted-section">
+      <div class="voted-section-title">⭐ Voted but Not Selected</div>
+      <div class="voted-hint">Players who were voted by the team for this match but didn't make the final squad. They'll automatically appear in Priority Queue for next match selection.</div>
+
+      <!-- Voted column headers -->
+      <div style="display:grid;grid-template-columns:auto 1fr 130px 1fr 32px;gap:8px;padding:0 12px;margin-bottom:4px">
+        <div></div>
+        <div style="font-size:10px;font-weight:700;color:var(--sun-d);text-transform:uppercase;letter-spacing:.06em">Player Name</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sun-d);text-align:center">Role</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sun-d)">Reason Not Selected</div>
+        <div></div>
+      </div>
+      <div id="voted-container"></div>
+      <button class="btn btn-sm" style="border-color:#FDE68A;color:var(--sun-d);background:var(--sun-l);margin-top:6px" onclick="addVotedRow()">+ Add Voted Player</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-primary" id="save-match-btn" onclick="saveMatch()">💾 Save Match & Calculate Scores</button>
+    <button class="btn" onclick="clearMatchForm()">✕ Cancel / Clear</button>
+  </div>
+</div>
+
+<!-- ═══ PLAYER SCORES ════════════════════════════════════ -->
+<div id="tab-scores" class="panel">
+
+  <!-- Controls bar -->
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+    <div class="field" style="margin:0">
+      <select id="score-sort" onchange="renderScores()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px">
+        <option value="combined">Sort: Combined Score</option>
+        <option value="opp">Sort: Opportunity</option>
+        <option value="perf">Sort: Performance</option>
+        <option value="name">Sort: Name A–Z</option>
+        <option value="matches">Sort: Matches Played</option>
+        <option value="runs">Sort: Total Runs</option>
+        <option value="wkts">Sort: Total Wickets</option>
+        <option value="sr">Sort: Avg SR</option>
+        <option value="eco">Sort: Avg Economy</option>
+      </select>
+    </div>
+    <button class="btn btn-sm" onclick="toggleColPicker()" id="col-picker-btn" style="font-size:12px">⚙ Columns</button>
+  </div>
+
+  <!-- Column picker panel -->
+  <div id="col-picker" style="display:none;margin-bottom:14px">
+    <div class="card" style="padding:14px 16px">
+      <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:10px">Toggle columns — click to show/hide</div>
+      <div id="col-chips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-sm btn-primary" onclick="selectAllCols()">Show All</button>
+        <button class="btn btn-sm" onclick="resetColsDefault()">Reset Default</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scores-empty" class="card">
+    <div class="empty"><div class="e-icon">📊</div><p>Add match data first to see player scores.</p></div>
+  </div>
+
+  <div id="scores-table" style="display:none">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap" style="border:none;border-radius:0">
+        <table id="scores-main-table">
+          <thead><tr id="scores-thead-row"></tr></thead>
+          <tbody id="scores-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;background:#F0FDF4">
+      <div style="font-size:12px;color:var(--grn-d);line-height:1.8">
+        <strong>Opportunity (100)</strong> = Position weight + Bowling overs×5 [max 25] + Played +10, all scaled ÷80×100, ×0.85 for Impact Players<br>
+        <span style="font-size:11px;display:block;margin:4px 0 2px">
+          <strong>Position weights:</strong>
+          Pos&nbsp;1&nbsp;&amp;&nbsp;2&nbsp;(Openers)&nbsp;=&nbsp;<strong>40</strong> &nbsp;|&nbsp;
+          Pos&nbsp;3&nbsp;=&nbsp;33 &nbsp;|&nbsp;
+          Pos&nbsp;4&nbsp;=&nbsp;30 &nbsp;|&nbsp;
+          Pos&nbsp;5&nbsp;=&nbsp;26 &nbsp;|&nbsp;
+          Pos&nbsp;6&nbsp;=&nbsp;22 &nbsp;|&nbsp;
+          Pos&nbsp;7&nbsp;=&nbsp;19 &nbsp;|&nbsp;
+          Pos&nbsp;8&nbsp;=&nbsp;16 &nbsp;|&nbsp;
+          Pos&nbsp;9&nbsp;=&nbsp;12 &nbsp;|&nbsp;
+          Pos&nbsp;10&amp;11&nbsp;=&nbsp;8
+          — <em>Openers get equal weight: both face the new ball</em>
+        </span>
+        <strong>Performance (100)</strong> = <em>SR-weighted per-innings batting avg</em> [run score tiered + SR continuous ÷200×25 + N/O +10 + boundary quality max 10] + Bowling [wkts×10 max 25 + economy bonus − <span style="color:var(--red)">extras penalty: −0.5pt per wide/no-ball, max −8, averaged over bowling matches only</span>] + Fielding [catch +4, run-out +5, stumping +5, max +15]
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NEXT XII ════════════════════════════════════════════ -->
+<div id="tab-selection" class="panel">
+
+  <div class="card">
+    <div class="card-title"><span class="icon">✅</span> Available Player Pool</div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:12px">
+      Check all players who are <strong>available / opted in</strong> for the next match. The 12-player suggestion is built only from this list.
+    </p>
+    <div id="pool-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:12px">
+      <div class="empty" style="grid-column:1/-1"><div class="e-icon" style="font-size:24px">👤</div><p>Add match data first to see players.</p></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-primary admin-action" onclick="selectAllPool()">Select All</button>
+      <button class="btn btn-sm admin-action" onclick="clearPool()">Clear All</button>
+      <button class="btn btn-sm btn-green" onclick="buildXII()">🏏 Generate 12-Player Suggestion</button>
+    </div>
+  </div>
+
+  <div class="card" id="xii-card">
+    <div class="card-title"><span class="icon">📋</span> Suggested 12 — Next Match</div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">
+      Top 12 from the available pool, ranked by Combined Score. Priority players (voted but not selected) are elevated.
+      The captain picks the final XI from these 12.
+    </p>
+    <div id="xi-list"><div class="empty"><div class="e-icon">📋</div><p>Select available players above and click Generate.</p></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">⭐</span> Priority Queue — Voted but Not Selected</div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Auto-populated from match entries. Use <strong>+1 Skip</strong> each week they miss out again.</p>
+    <div id="priority-list"><div class="empty"><div class="e-icon">⭐</div><p>No priority players yet — add voted players in the Add Match form.</p></div></div>
+  </div>
+
+  <div class="card" style="margin-top:0">
+    <div class="card-title"><span class="icon">📤</span> Export Data</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary admin-action" onclick="exportCSV()">⬇ Download CSV</button>
+      <button class="btn admin-action" onclick="copyJSON()">📋 Copy JSON (backup)</button>
+      <button class="btn admin-action" onclick="importJSON()" id="import-json-btn">📥 Import JSON</button>
+      <button class="btn admin-action" style="background:#F5F3FF;color:#6D28D9;border-color:#DDD6FE" onclick="setupJSONBin()" id="cloud-setup-btn">☁ Configure Cloud Sync</button>
+      <button class="btn btn-danger btn-sm admin-action" onclick="clearAll()" style="margin-left:auto">🗑 Clear All Data</button>
+      <p id="export-viewer-msg" style="font-size:12px;color:var(--ink3);display:none">🔒 Export options are admin-only. Log in as admin to access.</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .app -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Auth ──────────────────────────────────────────────────────────
+// PIN is stored hashed. Default admin PIN: 1983  (change by calling setAdminPin('newpin'))
+// SHA-like simple hash — good enough for a cricket app, not for banking
+function simpleHash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return Math.abs(h).toString(36);
+}
+const DEFAULT_PIN_HASH = simpleHash('1983');
+
+function getStoredPinHash() {
+  try { return localStorage.getItem('mtca_pin_hash') || DEFAULT_PIN_HASH; } catch(e) { return DEFAULT_PIN_HASH; }
+}
+
+let isAdmin = false;
+
+function checkPin() {
+  const pin = document.getElementById('pin-input').value.trim();
+  if (!pin) return;
+  if (simpleHash(pin) === getStoredPinHash()) {
+    isAdmin = true;
+    try { sessionStorage.setItem('mtca_admin', '1'); } catch(e) {}
+    closeLogin();
+    applyRole();
+    toast('✓ Admin access granted');
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-input').focus();
+  }
+}
+
+function closeLogin() {
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+function handleAuthBtn() {
+  if (isAdmin) {
+    // Logout
+    isAdmin = false;
+    try { sessionStorage.removeItem('mtca_admin'); } catch(e) {}
+    applyRole();
+    toast('Logged out — viewer mode');
+  } else {
+    document.getElementById('login-overlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('pin-input').focus(), 100);
+  }
+}
+
+function applyRole() {
+  const badge   = document.getElementById('role-badge');
+  const authBtn = document.getElementById('auth-btn');
+  const addNav  = document.getElementById('nav-add-match');
+
+  if (isAdmin) {
+    badge.className = 'role-badge role-admin';
+    badge.textContent = '🔑 Admin';
+    authBtn.textContent = 'Logout';
+    if (addNav) addNav.style.display = '';
+  } else {
+    badge.className = 'role-badge role-viewer';
+    badge.textContent = '👁 Viewer';
+    authBtn.textContent = 'Admin Login';
+    if (addNav) addNav.style.display = 'none';
+    // Redirect away from add-match if currently there
+    if (document.getElementById('tab-add-match')?.classList.contains('active')) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-dashboard').classList.add('active');
+      document.querySelectorAll('.nav-btn')[0].classList.add('active');
+    }
+  }
+
+  // Show/hide all admin-only elements (runs after every render too via renderAll)
+  document.querySelectorAll('.admin-action').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+
+  // Viewer message in export section
+  const viewerMsg = document.getElementById('export-viewer-msg');
+  if (viewerMsg) viewerMsg.style.display = isAdmin ? 'none' : 'block';
+}
+
+function requireAdmin(action) {
+  if (isAdmin) { action(); return; }
+  document.getElementById('login-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('pin-input').focus(), 100);
+}
+
+// Change admin PIN (call from browser console: changeAdminPin('oldpin','newpin'))
+function changeAdminPin(oldPin, newPin) {
+  if (simpleHash(oldPin) !== getStoredPinHash()) { alert('Wrong current PIN'); return; }
+  if (!newPin || newPin.length < 4) { alert('New PIN must be at least 4 digits'); return; }
+  try { localStorage.setItem('mtca_pin_hash', simpleHash(newPin)); } catch(e) {}
+  alert('PIN changed successfully');
+}
+
+// ── Cloud Storage (JSONBin) ───────────────────────────────────────
+// Setup: get a free API key at jsonbin.io, create one bin, paste IDs below.
+// Or call setupJSONBin() from the browser console to configure interactively.
+
+const JBIN = {
+  get apiKey()  { try { return localStorage.getItem('mtca_jbin_key')  || ''; } catch(e){ return ''; } },
+  get binId()   { try { return localStorage.getItem('mtca_jbin_bin')  || ''; } catch(e){ return ''; } },
+  configured()  { return !!(this.apiKey && this.binId); }
+};
+
+let cloudSyncStatus = 'unconfigured'; // 'unconfigured' | 'syncing' | 'ok' | 'error'
+
+function setSyncBadge(status, msg) {
+  cloudSyncStatus = status;
+  let badge = document.getElementById('sync-badge');
+  if (!badge) return;
+  const styles = {
+    unconfigured: { bg:'#F1F5F9', color:'#64748B', text:'☁ Cloud: not configured' },
+    syncing:      { bg:'#FEF3C7', color:'#D97706', text:'⏳ Syncing…' },
+    ok:           { bg:'#DCFCE7', color:'#15803D', text:'☁ Cloud: synced' },
+    error:        { bg:'#FEE2E2', color:'#DC2626', text:'☁ Cloud: error — using local' },
+  };
+  const s = styles[status] || styles.unconfigured;
+  badge.style.background = s.bg; badge.style.color = s.color;
+  badge.textContent = msg || s.text;
+}
+
+async function cloudLoad() {
+  if (!JBIN.configured()) return null;
+  setSyncBadge('syncing');
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JBIN.binId}/latest`, {
+      headers: { 'X-Master-Key': JBIN.apiKey, 'X-Bin-Meta': 'false' }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    setSyncBadge('ok');
+    return data;
+  } catch(e) {
+    setSyncBadge('error');
+    console.warn('JSONBin load failed:', e);
+    return null;
+  }
+}
+
+async function cloudSave(data) {
+  if (!JBIN.configured()) return false;
+  setSyncBadge('syncing');
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JBIN.binId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JBIN.apiKey,
+        'X-Bin-Versioning': 'false'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    setSyncBadge('ok');
+    return true;
+  } catch(e) {
+    setSyncBadge('error');
+    console.warn('JSONBin save failed:', e);
+    return false;
+  }
+}
+
+// Interactive setup wizard (call from browser console OR admin panel)
+async function setupJSONBin(apiKey, binId) {
+  if (!apiKey || !binId) {
+    // Prompt interactively
+    apiKey = prompt('Paste your JSONBin Master Key (from jsonbin.io → API Keys):');
+    if (!apiKey) return;
+    binId  = prompt('Paste your Bin ID (from jsonbin.io → Bins → your bin → Bin ID):');
+    if (!binId) return;
+  }
+  try {
+    localStorage.setItem('mtca_jbin_key', apiKey.trim());
+    localStorage.setItem('mtca_jbin_bin', binId.trim());
+  } catch(e) {}
+  // Test connection
+  const res = await cloudLoad();
+  if (res !== null) {
+    alert('✓ JSONBin connected! Your data will now sync to the cloud.');
+    setSyncBadge('ok');
+  } else {
+    alert('✗ Could not connect. Check your API key and Bin ID.');
+  }
+}
+
+// ── State persistence (cloud-first, localStorage fallback) ────────
+let state = { matches: [], priority: [], visibleCols: null };
+
+function loadLocalState() {
+  try {
+    const saved = localStorage.getItem('mtca_sunrisers');
+    if (saved) state = { matches: [], priority: [], visibleCols: null, ...JSON.parse(saved) };
+  } catch(e) {}
+}
+
+function saveLocalState() {
+  try { localStorage.setItem('mtca_sunrisers', JSON.stringify(state)); } catch(e) {}
+}
+
+function saveState() {
+  saveLocalState();
+  // Fire-and-forget cloud save (non-blocking)
+  cloudSave(state).then(ok => {
+    if (!ok && JBIN.configured()) setSyncBadge('error');
+  });
+}
+
+async function loadState() {
+  loadLocalState(); // always load local first so UI is instant
+  if (!JBIN.configured()) { setSyncBadge('unconfigured'); return; }
+
+  setSyncBadge('syncing');
+  const cloud = await cloudLoad();
+  if (cloud && (cloud.matches || cloud.priority)) {
+    // Cloud data exists — use it (it's more up to date)
+    state = { matches: cloud.matches || [], priority: cloud.priority || [], visibleCols: cloud.visibleCols || null };
+    saveLocalState(); // cache locally
+    setSyncBadge('ok');
+    renderAll(); // re-render with cloud data
+  } else if (cloud !== null && (!cloud.matches || cloud.matches.length === 0) && state.matches.length > 0) {
+    // Cloud is empty but we have local data — push local to cloud
+    await cloudSave(state);
+    setSyncBadge('ok');
+  }
+}
+
+// ── Scoring engine ──────────────────────────────────────────────
+function calcOpp(avgBatPos, avgOvers, played, dnbRatio, impactRatio) {
+  const impactMult = 1 - (impactRatio || 0) * 0.15;
+  const effectiveBatPos = dnbRatio >= 1 ? 11 : avgBatPos;
+
+  // Position weight — openers (pos 1 & 2) share the same score (both face new ball equally)
+  // Pos 3 onwards decreases by 3.5 pts per position, floor at 8
+  let posW;
+  if (dnbRatio >= 1)           posW = 5;
+  else if (effectiveBatPos <= 2) posW = 40;          // openers: equal weight
+  else posW = Math.max(8, Math.round(40 - (effectiveBatPos - 1) * 3.5));
+
+  const bowlW    = Math.min(25, Math.round(avgOvers * 5));
+  const presence = played ? 10 : 0;
+  return Math.min(100, Math.round((posW + bowlW + presence) * impactMult / 80 * 100));
+}
+
+function calcPerf(avgRuns, avgSR, avgWkts, avgEco, avgExtras, notOutRatio, bqBonus) {
+  // ── Batting ────────────────────────────────────────────────
+  // Tiered run score: gentler for low scores, rewards 30+ properly
+  let runScore;
+  if (avgRuns >= 50)     runScore = 40;
+  else if (avgRuns >= 30) runScore = 25 + (avgRuns - 30) / 20 * 15;
+  else if (avgRuns >= 15) runScore = 15 + (avgRuns - 15) / 15 * 10;
+  else                   runScore = avgRuns / 15 * 15;
+  runScore = Math.min(40, runScore);
+
+  // SR: continuous scoring (not discrete tiers) — effectiveSR boosted 10% for not-out
+  const effectiveSR = avgSR * (1 + notOutRatio * 0.10);
+  const srScore = Math.min(25, Math.round(effectiveSR / 200 * 25));
+
+  // Not-out bonus: +10 per not-out innings (raised from 8)
+  const noBonus = Math.round(notOutRatio * 10);
+
+  // ── Bowling ────────────────────────────────────────────────
+  const wktScore = Math.min(25, avgWkts * 10);
+  let ecoBonus = 0;
+  if (avgEco !== null && avgEco > 0) {
+    ecoBonus = avgEco <= 6 ? 18 : avgEco <= 7 ? 12 : avgEco <= 8 ? 7 : avgEco <= 9 ? 3 : 0;
+  }
+  const extrasPenalty = Math.min(8, Math.round((avgExtras || 0) * 0.5));
+
+  // bqBonus (boundary quality) passed in from aggregatePlayers, max 10
+  return Math.max(0, Math.min(100, Math.round(
+    runScore + srScore + noBonus + (bqBonus || 0) + wktScore + ecoBonus - extrasPenalty
+  )));
+}
+
+function aggregatePlayers() {
+  const map = {};
+  state.matches.forEach(m => {
+    m.players.forEach(p => {
+      if (!p.name.trim()) return;
+      const k = p.name.trim();
+      if (!map[k]) map[k] = { name: k, entries: [] };
+      map[k].entries.push({ p, m });
+    });
+  });
+
+  return Object.values(map).map(pl => {
+    const n = pl.entries.length;
+    const dnbCount = pl.entries.filter(e => e.p.dnb).length;
+    const battingEntries = pl.entries.filter(e => !e.p.dnb);
+
+    // ── Aggregate stats for display ──────────────────────────
+    const avgBatPos = battingEntries.length > 0
+      ? battingEntries.reduce((s, e) => s + (+e.p.batPos || 11), 0) / battingEntries.length
+      : 11;
+    const totalRuns      = battingEntries.reduce((s, e) => s + (+e.p.runs || 0), 0);
+    const totalBalls     = battingEntries.reduce((s, e) => s + (+e.p.balls || 0), 0);
+    const totalOvers     = pl.entries.reduce((s, e) => s + (+e.p.overs || 0), 0);
+    const totalWkts      = pl.entries.reduce((s, e) => s + (+e.p.wkts || 0), 0);
+    const totalRunsGiven = pl.entries.reduce((s, e) => s + (+e.p.runsGiven || 0), 0);
+    const totalExtras    = pl.entries.reduce((s, e) => s + (+e.p.extras || 0), 0);
+    const totalCatches   = pl.entries.reduce((s, e) => s + (+e.p.catches || 0), 0);
+    const totalRunOuts   = pl.entries.reduce((s, e) => s + (+e.p.runOuts || 0), 0);
+    const totalStumpings = pl.entries.reduce((s, e) => s + (+e.p.stumpings || 0), 0);
+    const avgSR          = totalBalls > 0 ? (totalRuns / totalBalls) * 100 : 0;
+    const avgEco         = totalOvers > 0 ? totalRunsGiven / totalOvers : null;
+    // Average over bowling matches only (not all matches) — fairer for part-time bowlers
+    const bowlingMatches = pl.entries.filter(e => (+e.p.overs || 0) > 0).length;
+    const avgExtras      = bowlingMatches > 0 ? totalExtras / bowlingMatches : 0;
+    const avgWkts        = bowlingMatches > 0 ? totalWkts  / bowlingMatches : 0;
+    const dnbRatio       = dnbCount / n;
+    const notOutCount    = battingEntries.filter(e => e.p.notOut).length;
+
+    // Impact player: count matches where this player was named as impactIn or impactOut
+    const impactCount = pl.entries.filter(e =>
+      (e.m.impactIn  && e.m.impactIn.trim().toLowerCase()  === pl.name.toLowerCase()) ||
+      (e.m.impactOut && e.m.impactOut.trim().toLowerCase() === pl.name.toLowerCase())
+    ).length;
+    const impactRatio = impactCount / n;
+
+    // ── Opportunity ───────────────────────────────────────────
+    const opp = calcOpp(avgBatPos, totalOvers / n, true, dnbRatio, impactRatio);
+
+    // ── Performance: SR-WEIGHTED per-innings scores ───────────
+    // Score each batting innings individually, then weight by that innings' SR.
+    // A high-SR innings (170) contributes far more than a low-SR innings (55).
+    // This prevents one bad innings from wiping out an exceptional one.
+    let batPerfScore = 0;
+    if (battingEntries.length > 0) {
+      const inningsScores = battingEntries.map(e => {
+        const p = e.p;
+        const runs   = +p.runs  || 0;
+        const balls  = +p.balls || 0;
+        const fours  = +p.fours || 0;
+        const sixes  = +p.sixes || 0;
+        const notOut = !!p.notOut;
+        const sr     = balls > 0 ? (runs / balls) * 100 : 0;
+        const effSR  = sr * (notOut ? 1.10 : 1.0);
+        const br     = fours * 4 + sixes * 6;
+
+        // Tiered run score
+        let rs;
+        if (runs >= 50)     rs = 40;
+        else if (runs >= 30) rs = 25 + (runs - 30) / 20 * 15;
+        else if (runs >= 15) rs = 15 + (runs - 15) / 15 * 10;
+        else                 rs = runs / 15 * 15;
+        rs = Math.min(40, rs);
+
+        const srS  = Math.min(25, Math.round(effSR / 200 * 25));
+        const noB  = notOut ? 10 : 0;
+        const bq   = Math.min(10, Math.round(br / Math.max(runs, 1) * 10));
+        const score = Math.min(100, Math.max(0, Math.round(rs + srS + noB + bq)));
+
+        // Weight = max(SR, 10) — ensures even 0-run innings has minimal weight
+        const weight = Math.max(sr, 10);
+        return { score, weight };
+      });
+
+      const totalWeight = inningsScores.reduce((s, i) => s + i.weight, 0);
+      batPerfScore = inningsScores.reduce((s, i) => s + i.score * i.weight, 0) / totalWeight;
+    }
+
+    // Bowling component (averaged across all matches)
+    const wktScore   = Math.min(25, avgWkts * 10);
+    let ecoBonus = 0;
+    if (avgEco !== null && avgEco > 0) {
+      ecoBonus = avgEco <= 6 ? 18 : avgEco <= 7 ? 12 : avgEco <= 8 ? 7 : avgEco <= 9 ? 3 : 0;
+    }
+    const extPenalty = Math.min(8, Math.round(avgExtras * 0.5));
+    const bowlPerfScore = wktScore + ecoBonus - extPenalty;
+
+    // Fielding bonus: catches +4, run-outs +5, stumpings +5 — averaged per match, capped 15
+    const avgFieldBonus = Math.min(15, Math.round(
+      (totalCatches * 4 + totalRunOuts * 5 + totalStumpings * 5) / n
+    ));
+
+    const perf     = Math.min(100, Math.max(0, Math.round(batPerfScore + bowlPerfScore + avgFieldBonus)));
+    const combined = Math.round((opp + perf) / 2);
+
+    return {
+      name: pl.name, matches: n, dnbCount, notOutCount, impactCount,
+      avgBatPos: battingEntries.length > 0 ? +avgBatPos.toFixed(1) : '—',
+      totalRuns, totalRunsGiven, avgSR: +avgSR.toFixed(1),
+      totalOvers: +totalOvers.toFixed(1), totalWkts,
+      totalExtras, totalCatches, totalRunOuts, totalStumpings,
+      avgEco: avgEco !== null ? +avgEco.toFixed(2) : null,
+      opp, perf, combined
+    };
+  });
+}
+// ── Score bar HTML ──────────────────────────────────────────────
+function scoreBar(val) {
+  const cls = val >= 70 ? 's-green' : val >= 45 ? 's-amber' : 's-red';
+  return `<div class="score-wrap ${cls}">
+    <div class="bar-bg"><div class="bar-fill" style="width:${val}%"></div></div>
+    <span class="score-num">${val}</span>
+  </div>`;
+}
+
+function statusBadge(combined) {
+  if (combined >= 70) return '<span class="badge b-green">Strong Pick</span>';
+  if (combined >= 50) return '<span class="badge b-blue">Consider</span>';
+  if (combined >= 35) return '<span class="badge b-amber">Developing</span>';
+  return '<span class="badge b-gray">Needs Work</span>';
+}
+
+// ── Tab switching ───────────────────────────────────────────────
+function switchTab(id, btn) {
+  if (id === 'add-match' && !isAdmin) {
+    document.getElementById('login-overlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('pin-input').focus(), 100);
+    return;
+  }
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'add-match') refreshPlayerDatalist();
+  renderAll();
+}
+
+// ── Render all ──────────────────────────────────────────────────
+function renderAll() {
+  updateHeaderMeta();
+  renderDashboard();
+  renderScores();
+  renderPool();
+  renderPriority();
+  renderXI();
+  applyRole();  // reapply admin-action visibility after every render
+}
+
+function updateHeaderMeta() {
+  const players = aggregatePlayers();
+  document.getElementById('hdr-matches').textContent = state.matches.length;
+  document.getElementById('hdr-players').textContent = players.length;
+  document.getElementById('hdr-priority').textContent = state.priority.length;
+  document.getElementById('m-matches').textContent = state.matches.length;
+  document.getElementById('m-players').textContent = players.length;
+  if (players.length > 0) {
+    document.getElementById('m-avg-opp').textContent = Math.round(players.reduce((s,p)=>s+p.opp,0)/players.length);
+    document.getElementById('m-avg-perf').textContent = Math.round(players.reduce((s,p)=>s+p.perf,0)/players.length);
+  }
+}
+
+// ── Dashboard ───────────────────────────────────────────────────
+function renderDashboard() {
+  const players = aggregatePlayers().sort((a,b) => b.combined - a.combined);
+  const hasData = state.matches.length > 0;
+  document.getElementById('dash-empty').style.display = hasData ? 'none' : 'block';
+  document.getElementById('dash-content').style.display = hasData ? 'block' : 'none';
+  if (!hasData) return;
+
+  // Top 5
+  const top5 = players.slice(0, 5);
+  document.getElementById('dash-top5').innerHTML = top5.map((p, i) => `
+    <tr>
+      <td><span class="rank rank-${i+1}">${i+1}</span></td>
+      <td><strong>${p.name}</strong></td>
+      <td class="num">${p.opp}</td>
+      <td class="num">${p.perf}</td>
+      <td class="num"><strong>${p.combined}</strong></td>
+    </tr>`).join('');
+
+  // Matches
+  document.getElementById('dash-matches').innerHTML = [...state.matches].reverse().map(m => {
+    const resultColors = { Won:'var(--grn-d)', Lost:'var(--red)', Tied:'var(--sun-d)', 'No Result':'var(--ink3)' };
+    const resultColor = resultColors[m.result] || 'var(--ink3)';
+    const resultHtml = m.result
+      ? `<span style="font-weight:700;color:${resultColor}">${m.result}</span>`
+      : '<span style="color:var(--ink4)">—</span>';
+    return `<tr>
+      <td><span class="badge b-gray">${m.id}</span></td>
+      <td>${m.date || '—'}</td>
+      <td>${m.opponent || '—'}</td>
+      <td class="num"><strong>${m.total || 0}</strong></td>
+      <td>${resultHtml}</td>
+      <td class="num">${m.players.filter(p=>p.name.trim()).length}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm admin-action edit-match-btn" style="padding:3px 10px;font-size:11px" onclick="editMatch('${m.id}')">✏ Edit</button>
+        <button class="btn btn-sm admin-action del-match-btn" style="padding:3px 10px;font-size:11px;color:var(--red);border-color:var(--red);margin-left:4px" onclick="deleteMatch('${m.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleImportCard() {
+  const card = document.getElementById('cricclubs-import-card');
+  const btn  = document.getElementById('import-toggle-btn');
+  const open = card.style.display === 'none';
+  card.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '🔗 Import from CricClubs (collapse)' : '🔗 Import from CricClubs (expand)';
+  btn.style.color = open ? 'var(--blu)' : 'var(--ink3)';
+}
+
+// ── Column definitions ───────────────────────────────────────────
+const ALL_COLS = [
+  { id:'rank',     label:'#',           group:'base',    alwaysOn:true },
+  { id:'player',   label:'Player',      group:'base',    alwaysOn:true },
+  { id:'matches',  label:'Matches',     group:'batting'  },
+  { id:'avgBat',   label:'Avg Bat Pos', group:'batting'  },
+  { id:'runs',     label:'Total Runs',  group:'batting'  },
+  { id:'notout',   label:'Not Outs',    group:'batting'  },
+  { id:'avgSR',    label:'Avg SR',      group:'batting'  },
+  { id:'overs',    label:'Overs Bowled',group:'bowling'  },
+  { id:'wkts',     label:'Wickets',     group:'bowling'  },
+  { id:'runsGiven',label:'Runs Given',  group:'bowling'  },
+  { id:'avgEco',   label:'Avg Economy', group:'bowling'  },
+  { id:'extras',   label:'Extras',      group:'bowling'  },
+  { id:'fielding', label:'Fielding',     group:'bowling'  },
+  { id:'opp',      label:'Opportunity', group:'scores',  alwaysOn:true },
+  { id:'perf',     label:'Performance', group:'scores',  alwaysOn:true },
+  { id:'combined', label:'Combined',    group:'scores',  alwaysOn:true },
+];
+
+const DEFAULT_COLS = ['rank','player','matches','runs','avgSR','wkts','avgEco','extras','opp','perf','combined'];
+
+// Column visibility — stored in state so it persists via JSONBin cloud sync
+function getVisibleCols() {
+  const alwaysOn = ALL_COLS.filter(c => c.alwaysOn).map(c => c.id);
+  const saved = state.visibleCols;
+  if (Array.isArray(saved) && saved.length > 0) {
+    return [...new Set([...alwaysOn, ...saved])];
+  }
+  return [...DEFAULT_COLS];
+}
+
+function saveVisibleCols(cols) {
+  state.visibleCols = cols;
+  saveState(); // persists to localStorage + JSONBin
+}
+
+function toggleColPicker() {
+  const el = document.getElementById('col-picker');
+  const btn = document.getElementById('col-picker-btn');
+  const open = el.style.display === 'none';
+  el.style.display = open ? 'block' : 'none';
+  btn.style.background = open ? 'var(--ink)' : '';
+  btn.style.color = open ? '#fff' : '';
+  if (open) renderColChips();
+}
+
+function renderColChips() {
+  const visible = getVisibleCols();
+  const groups = { base:'Required', batting:'Batting', bowling:'Bowling', scores:'Scores' };
+  const byGroup = {};
+  ALL_COLS.forEach(c => { (byGroup[c.group] = byGroup[c.group]||[]).push(c); });
+  
+  let html = '';
+  Object.entries(groups).forEach(([g, label]) => {
+    if (!byGroup[g]) return;
+    html += `<div style="width:100%;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink4);margin:6px 0 3px">${label}</div>`;
+    byGroup[g].forEach(col => {
+      const on = visible.includes(col.id);
+      const locked = col.alwaysOn ? 'locked' : '';
+      html += `<span class="col-chip ${on?'on':''} ${locked}" onclick="toggleCol('${col.id}')" title="${col.alwaysOn?'Always visible':''}">${col.label}</span>`;
+    });
+  });
+  document.getElementById('col-chips').innerHTML = html;
+}
+
+function toggleCol(colId) {
+  const col = ALL_COLS.find(c => c.id === colId);
+  if (col?.alwaysOn) return;
+  let visible = getVisibleCols();
+  if (visible.includes(colId)) {
+    visible = visible.filter(c => c !== colId);
+  } else {
+    // Insert at natural position
+    const allIds = ALL_COLS.map(c => c.id);
+    const newVisible = allIds.filter(id => visible.includes(id) || id === colId);
+    visible = newVisible;
+  }
+  saveVisibleCols(visible);
+  renderColChips();
+  renderScores();
+}
+
+function selectAllCols() {
+  saveVisibleCols(ALL_COLS.map(c => c.id));
+  renderColChips();
+  renderScores();
+}
+
+function resetColsDefault() {
+  saveVisibleCols([...DEFAULT_COLS]);
+  renderColChips();
+  renderScores();
+}
+
+// ── Player Scores ────────────────────────────────────────────────
+function renderScores() {
+  const players = aggregatePlayers();
+  const hasData = players.length > 0;
+  document.getElementById('scores-empty').style.display = hasData ? 'none' : 'block';
+  document.getElementById('scores-table').style.display = hasData ? 'block' : 'none';
+  if (!hasData) return;
+
+  const sort = document.getElementById('score-sort').value;
+  players.sort((a,b) => {
+    if (sort === 'name')    return a.name.localeCompare(b.name);
+    if (sort === 'opp')     return b.opp - a.opp;
+    if (sort === 'perf')    return b.perf - a.perf;
+    if (sort === 'matches') return b.matches - a.matches;
+    if (sort === 'runs')    return b.totalRuns - a.totalRuns;
+    if (sort === 'wkts')    return b.totalWkts - a.totalWkts;
+    if (sort === 'sr')      return b.avgSR - a.avgSR;
+    if (sort === 'eco')     return (a.avgEco||99) - (b.avgEco||99);
+    return b.combined - a.combined;
+  });
+
+  const visible = getVisibleCols();
+  const cols = ALL_COLS.filter(c => visible.includes(c.id));
+
+  // Build header
+  document.getElementById('scores-thead-row').innerHTML = cols.map(col => {
+    const align = ['rank','player'].includes(col.id) ? '' : ' class="num"';
+    const style = col.id === 'extras' ? ' style="color:var(--red)"' : '';
+    return `<th${align}${style}>${col.label}</th>`;
+  }).join('');
+
+  // Build rows
+  document.getElementById('scores-tbody').innerHTML = players.map((p, i) => {
+    const cells = cols.map(col => {
+      switch(col.id) {
+        case 'rank':      return `<td style="font-weight:700;color:var(--ink3)">${i+1}</td>`;
+        case 'player':    return `<td><strong>${p.name}</strong>${p.dnbCount>0?` <span class="badge b-blue" style="font-size:10px">DNB×${p.dnbCount}</span>`:''}${p.notOutCount>0?` <span class="badge b-green" style="font-size:10px">N/O×${p.notOutCount}</span>`:''}${p.impactCount>0?` <span class="badge" style="font-size:10px;background:#F5F3FF;color:#7C3AED">IP×${p.impactCount}</span>`:''}</td>`;
+        case 'matches':   return `<td class="num">${p.matches}</td>`;
+        case 'avgBat':    return `<td class="num">${p.avgBatPos}</td>`;
+        case 'runs':      return `<td class="num"><strong>${p.totalRuns}</strong></td>`;
+        case 'notout':    return `<td class="num">${p.notOutCount > 0 ? `<span style="color:var(--grn-d);font-weight:600">${p.notOutCount}</span>` : '—'}</td>`;
+        case 'avgSR':     return `<td class="num">${p.avgSR > 0 ? p.avgSR : '—'}</td>`;
+        case 'overs':     return `<td class="num">${p.totalOvers > 0 ? p.totalOvers : '—'}</td>`;
+        case 'wkts':      return `<td class="num"><strong>${p.totalWkts > 0 ? p.totalWkts : '—'}</strong></td>`;
+        case 'runsGiven': return `<td class="num">${p.totalOvers > 0 ? (p.totalRunsGiven||'—') : '—'}</td>`;
+        case 'avgEco':    return `<td class="num">${p.avgEco !== null ? p.avgEco : '—'}</td>`;
+        case 'extras':    return `<td class="num" style="color:${p.totalExtras>5?'var(--red)':'var(--ink3)'}">${p.totalExtras > 0 ? p.totalExtras : '—'}</td>`;
+        case 'fielding': {
+          const f = (p.totalCatches||0) + (p.totalRunOuts||0) + (p.totalStumpings||0);
+          const tip = [p.totalCatches>0?`${p.totalCatches}ct`:'', p.totalRunOuts>0?`${p.totalRunOuts}ro`:'', p.totalStumpings>0?`${p.totalStumpings}st`:''].filter(Boolean).join(' ');
+          return `<td class="num" style="color:var(--blu)">${f > 0 ? `<span title="${tip}">${f}</span>` : '—'}</td>`;
+        }
+        case 'opp':       return `<td>${scoreBar(p.opp)}</td>`;
+        case 'perf':      return `<td>${scoreBar(p.perf)}</td>`;
+        case 'combined':  return `<td>${scoreBar(p.combined)}</td>`;
+        default:          return '<td>—</td>';
+      }
+    });
+    return `<tr>${cells.join('')}</tr>`;
+  }).join('');
+}
+
+
+// ── Priority Players ─────────────────────────────────────────────
+function renderPriority() {
+  const el = document.getElementById('priority-list');
+  if (state.priority.length === 0) {
+    el.innerHTML = '<div class="card"><div class="empty"><div class="e-icon">⭐</div><p>No priority players yet.</p></div></div>';
+    return;
+  }
+  el.innerHTML = state.priority.map((p, i) => {
+    const skipped = +p.skipped || 1;
+    let status, statusClass;
+    if (skipped >= 3) { status = '<span class="badge b-must">MUST SELECT NOW</span>'; statusClass = 'must'; }
+    else if (skipped >= 2) { status = '<span class="badge b-amber">High Priority</span>'; statusClass = ''; }
+    else { status = '<span class="badge b-blue">Priority</span>'; statusClass = ''; }
+
+    return `<div class="priority-item ${statusClass}">
+      <div class="priority-rank">#${i+1}</div>
+      <div class="priority-info">
+        <div class="priority-name">${p.name} <span class="badge b-gray">${p.role}</span></div>
+        <div class="priority-meta">${p.votes || 0} votes · ${p.match || '—'} · Skipped ${skipped}× ${p.notes ? '· ' + p.notes : ''}</div>
+      </div>
+      <div class="priority-actions">
+        ${status}
+        <button class="btn btn-sm" onclick="bumpSkipped(${i})" title="Increment skip count">+1 skip</button>
+        <button class="btn btn-green btn-sm" onclick="markSelected(${i})" title="Mark as selected for next match">✓ Selected</button>
+        <button class="btn btn-danger btn-sm" onclick="removePriority(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function bumpSkipped(i) {
+  state.priority[i].skipped = (+state.priority[i].skipped || 1) + 1;
+  saveState(); renderPriority(); renderXI();
+  toast(`${state.priority[i].name} — skipped count updated to ${state.priority[i].skipped}`);
+}
+
+function markSelected(i) {
+  const name = state.priority[i].name;
+  state.priority.splice(i, 1);
+  saveState(); renderPriority(); renderXI(); updateHeaderMeta();
+  toast(`✓ ${name} marked as selected — removed from priority queue`);
+}
+
+function removePriority(i) {
+  const name = state.priority[i].name;
+  state.priority.splice(i, 1);
+  saveState(); renderPriority(); renderXI(); updateHeaderMeta();
+  toast(`${name} removed from priority queue`);
+}
+
+// ── Player Pool & XII ─────────────────────────────────────────────
+let selectedPool = new Set();
+
+function renderPool() {
+  const el = document.getElementById('pool-list');
+  if (!el) return;
+  const players = aggregatePlayers().sort((a,b) => b.combined - a.combined);
+  const priorityNames = new Set(state.priority.map(p => p.name.toLowerCase()));
+
+  if (players.length === 0) {
+    el.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="e-icon" style="font-size:24px">👤</div><p>Add match data first to see players.</p></div>';
+    return;
+  }
+
+  // Also include priority-only players (voted but never played)
+  const allNames = [...players.map(p => p.name)];
+  state.priority.forEach(p => { if (!allNames.includes(p.name)) allNames.push(p.name); });
+
+  el.innerHTML = allNames.map(name => {
+    const pd = players.find(p => p.name === name);
+    const isPriority = priorityNames.has(name.toLowerCase());
+    const isChecked = selectedPool.has(name);
+    const score = pd ? pd.combined : '⭐';
+    return `<label class="pool-item${isPriority ? ' priority-pool' : ''}${isChecked ? ' checked' : ''}" onclick="togglePool('${name.replace(/'/g,"\\'")}',this)">
+      <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();togglePool('${name.replace(/'/g,"\\'")}',this.closest('.pool-item'))"/>
+      <span class="pool-name">${name}${isPriority ? ' ⭐' : ''}</span>
+      <span class="pool-score" style="color:${pd ? (pd.combined>=70?'var(--grn-d)':pd.combined>=45?'var(--sun-d)':'var(--red)') : 'var(--sun-d)'}">${score}</span>
+    </label>`;
+  }).join('');
+}
+
+function togglePool(name, el) {
+  const cb = el.querySelector('input[type=checkbox]') || el;
+  if (el.classList) {
+    const nowChecked = el.classList.toggle('checked');
+    if (cb.type === 'checkbox') cb.checked = nowChecked;
+    if (nowChecked) selectedPool.add(name); else selectedPool.delete(name);
+  }
+}
+
+function selectAllPool() {
+  const players = aggregatePlayers();
+  players.forEach(p => selectedPool.add(p.name));
+  state.priority.forEach(p => selectedPool.add(p.name));
+  renderPool();
+}
+
+function clearPool() {
+  selectedPool.clear();
+  renderPool();
+}
+
+function buildXII() {
+  if (selectedPool.size === 0) { toast('⚠ Select at least one available player first'); return; }
+  renderXI();
+}
+
+function renderXI() {
+  const el = document.getElementById('xi-list');
+  if (!el) return;
+  const allPlayers = aggregatePlayers().sort((a,b) => b.combined - a.combined);
+  const playerMap = {};
+  allPlayers.forEach(p => { playerMap[p.name] = p; });
+
+  // Pool to pick from: if none selected yet show all, else filter
+  const pool = selectedPool.size > 0
+    ? allPlayers.filter(p => selectedPool.has(p.name))
+    : allPlayers;
+
+  // Also include priority-only players in pool if selected
+  const priorityOnlyInPool = state.priority
+    .filter(p => selectedPool.has(p.name) && !playerMap[p.name])
+    .map(p => p.name);
+
+  if (pool.length === 0 && priorityOnlyInPool.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="e-icon">📋</div><p>Select available players and click Generate.</p></div>';
+    return;
+  }
+
+  const mustPick    = state.priority.filter(p => (+p.skipped||1) >= 3 && selectedPool.has(p.name)).map(p => p.name);
+  const highPriority = state.priority.filter(p => (+p.skipped||1) < 3 && selectedPool.has(p.name)).map(p => p.name);
+
+  const selected = [];
+  const usedNames = new Set();
+
+  // 1. Must-picks
+  mustPick.forEach(name => {
+    if (selected.length < 12) { selected.push({ name, source: 'must' }); usedNames.add(name); }
+  });
+  // 2. High priority
+  highPriority.forEach(name => {
+    if (selected.length < 12 && !usedNames.has(name)) { selected.push({ name, source: 'priority' }); usedNames.add(name); }
+  });
+  // 3. Best from pool by combined score
+  pool.forEach(p => {
+    if (selected.length < 12 && !usedNames.has(p.name)) { selected.push({ name: p.name, source: 'score', score: p.combined }); usedNames.add(p.name); }
+  });
+  // 4. Priority-only players in pool
+  priorityOnlyInPool.forEach(name => {
+    if (selected.length < 12 && !usedNames.has(name)) { selected.push({ name, source: 'priority-only' }); usedNames.add(name); }
+  });
+
+  el.innerHTML = `<div class="xi-grid">` + selected.map((s, i) => {
+    const pd = playerMap[s.name];
+    const score = pd ? pd.combined : '⭐';
+    const scoreColor = pd ? (pd.combined>=70?'var(--grn)':pd.combined>=45?'var(--sun-d)':'var(--red)') : 'var(--sun-d)';
+    const isEleven = i < 11;
+    let extra = '', cls = '';
+
+    if (s.source === 'must') { extra = '<span class="badge b-must" style="font-size:10px">MUST</span>'; cls = 'must-pick'; }
+    else if (s.source === 'priority' || s.source === 'priority-only') { extra = '<span class="badge b-amber" style="font-size:10px">Priority</span>'; cls = 'priority'; }
+    if (i === 11) cls += ' xi-12th';
+
+    return `<div class="xi-item ${cls}" style="${i===11?'border-style:dashed;opacity:.85':''}">
+      <span class="xi-num" style="${i>=11?'color:var(--ink4)':''}">
+        ${i < 11 ? i+1 : '12'}${i===11?'<span style="font-size:9px;display:block;color:var(--ink4);font-weight:400;font-family:DM Sans">reserve</span>':''}
+      </span>
+      <span class="xi-name">${s.name}</span>
+      ${extra}
+      <span class="xi-score" style="color:${scoreColor}">${score}</span>
+    </div>`;
+  }).join('') + `</div>
+  <p style="font-size:11px;color:var(--ink3);margin-top:10px">Player 12 is the reserve — captain picks final XI from these 12.</p>`;
+}
+
+// ── CricClubs Import ──────────────────────────────────────────────
+
+// Extract matchId from URL and pre-fill the form field
+function extractMatchIdFromUrl(url) {
+  const mid = url.match(/matchId=(\d+)/)?.[1];
+  const hint = document.getElementById('url-id-hint');
+  if (mid) {
+    document.getElementById('am-id').value = mid;
+    hint.style.display = 'block';
+    hint.textContent = `✓ Match ID ${mid} filled in form below`;
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+// ── Live preview as user pastes ───────────────────────────────────
+function livePreviewPaste(text) {
+  if (!text.trim()) {
+    document.getElementById('paste-preview').style.display = 'none';
+    return;
+  }
+  const result = parseTabularScorecard(text);
+  const el = document.getElementById('paste-preview');
+  const list = document.getElementById('paste-preview-list');
+  if (!result || result.players.length === 0) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'block';
+  list.innerHTML = result.players.map(p => {
+    const flag = p.dnb ? '<span style="color:#6366F1">[DNB]</span>' : `<span style="color:var(--grn-d)">[${p.batPos}]</span>`;
+    const bat  = p.dnb ? '' : ` ${p.runs}r/${p.balls}b`;
+    const bowl = p.overs > 0 ? ` | ${p.overs}ov ${p.wkts}w ${p.runsGiven}r` : '';
+    return `${flag} <strong>${p.name}</strong>${bat}${bowl}`;
+  }).join('<br>');
+}
+
+// ── Main paste parser ─────────────────────────────────────────────
+function parsePastedHTML() {
+  const raw = document.getElementById('cc-paste').value.trim();
+  if (!raw) { toast('⚠ Paste the scorecard text first'); return; }
+
+  const result = parseTabularScorecard(raw);
+  const el = document.getElementById('import-result');
+
+  if (!result || result.players.length === 0) {
+    el.style.display = 'block';
+    el.innerHTML = `<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red)">
+      ❌ Could not find player data in the pasted text.<br><br>
+      <strong>Make sure you copied the scorecard table rows</strong> — they look like:<br>
+      <code style="background:#fff;padding:2px 6px;border-radius:4px;font-size:11px">Arun Kumar &nbsp; c Smith b Jones &nbsp; 38 &nbsp; 32 &nbsp; 4 &nbsp; 1 &nbsp; 118.75</code><br><br>
+      Try: click the first player name in the table → Shift+click the last number → Ctrl+C → paste here.
+    </div>`;
+    return;
+  }
+
+  applyParsedMatch(result);
+  el.style.display = 'block';
+  el.innerHTML = `<div style="background:var(--grn-l);border:1px solid #86EFAC;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--grn-d)">
+    ✅ Parsed <strong>${result.players.length} players</strong>${result.opponent ? ' vs ' + result.opponent : ''}. 
+    Form filled below — review any blanks then click Save.
+  </div>`;
+}
+
+// ── Helper: empty player object (defined FIRST so all functions can use it) ──
+function _ep(name, dnb=false) {
+  return {name:name.trim(), dnb, notOut:false, batPos:null,
+          runs:0, balls:0, fours:0, sixes:0,
+          overs:0, wkts:0, runsGiven:0, extras:0};
+}
+
+// ── Cricket number block parser ───────────────────────────────────
+// Decodes CricClubs concatenated format: "01000.00" → R=0 B=10 4s=0 6s=0 SR=0.00
+// "412414170.83" → R=41 B=24 4s=1 6s=4 SR=170.83
+function parseCricketNumBlock(block) {
+  if (!block || !block.includes('.')) return null;
+  const dot = block.lastIndexOf('.');
+  const dec = block.slice(dot+1), intpart = block.slice(0, dot);
+  if (dec.length !== 2 || !/^\d+$/.test(dec) || !/^\d+$/.test(intpart)) return null;
+
+  const allResults = [];
+  for (const srLen of [1, 2, 3]) {
+    if (intpart.length < srLen) continue;
+    const srVal = parseFloat(intpart.slice(-srLen) + '.' + dec);
+    if (srVal > 700) continue;
+    const rem = intpart.length > srLen ? intpart.slice(0, -srLen) : '';
+    const r = splitBatNums(rem, srVal);
+    if (r) allResults.push([...r, srVal]);
+  }
+  if (!allResults.length) return null;
+  allResults.sort((a, b) => b[1] - a[1] || b[0] - a[0]); // prefer more balls
+  return allResults[0]; // [runs, balls, fours, sixes, sr]
+}
+
+function splitBatNums(s, sr) {
+  const n = s.length, results = [];
+  for (let rl = 0; rl <= Math.min(3, n); rl++)
+    for (let bl = 1; bl <= Math.min(3, n - rl); bl++)
+      for (let fl = 0; fl <= Math.min(3, n - rl - bl); fl++) {
+        const sl = n - rl - bl - fl;
+        if (sl < 0 || sl > 2) continue;
+        const run  = rl > 0 ? parseInt(s.slice(0, rl))           : 0;
+        const ball = parseInt(s.slice(rl, rl + bl));
+        const four = fl > 0 ? parseInt(s.slice(rl+bl, rl+bl+fl)) : 0;
+        const six  = sl > 0 ? parseInt(s.slice(rl+bl+fl))        : 0;
+        if (ball > 120 || four > 30 || six > 20 || run > 200) continue;
+        if (run > 0  && four*4 + six*6 > run) continue; // boundary runs ≤ total runs
+        if (run === 0 && (four > 0 || six > 0)) continue; // can't have boundaries with 0 runs
+        if (run === 0 && ball > 40) continue;              // heuristic max balls for duck
+        if (ball > 0) {
+          const exp = Math.round(run / ball * 10000) / 100;
+          if (Math.abs(exp - sr) < 2.0) results.push([run, ball, four, six]);
+        } else if (run === 0) {
+          results.push([run, ball, four, six]);
+        }
+      }
+  results.sort((a, b) => b[1] - a[1] || b[0] - a[0]);
+  return results[0] || null;
+}
+
+// ── Name cleaner: strips dismissal text from end of name ──────────
+function cleanBatName(raw) {
+  let n = raw.replace(/[*†]/g, '').trim();
+  // Strip dismissal keywords and everything after them
+  n = n.replace(/\s*(not\s*out|run\s*out|lbw\b|hit\s*wicket|retired|absent|obstructing).*$/i, '').trim();
+  n = n.replace(/\s*(c\s+(?:†\s*)?\w[\w\s'.\-]*\s+b\s+\w[\w\s'.\-]*)$/i, '').trim();
+  n = n.replace(/\s*(b\s+\w[\w\s'.\-]*)$/i, '').trim();
+  n = n.replace(/\s*(st\s+(?:†\s*)?\w[\w\s'.\-]*\s+b\s+\w[\w\s'.\-]*)$/i, '').trim();
+  // Handle name directly concatenated with 'c' (caught): "Pathodiyac" → "Pathodiya"
+  n = n.replace(/(?<=[a-z])c$/, '').trim();
+  return n.replace(/\s+/g, ' ').trim();
+}
+
+// ── Main scorecard parser ─────────────────────────────────────────
+// Handles the CricClubs concatenated paste format:
+//   "Mayank Pathodiyac Arjun K b Phaninder R01000.00 Venkat Radha..."
+// AND tab-separated clean-copy format.
+function parseTabularScorecard(raw) {
+  const result = { matchId:'', date:'', opponent:'', total:0, players:[] };
+
+  // Pre-fill matchId from URL field
+  const urlVal = document.getElementById('cc-url')?.value || '';
+  result.matchId = urlVal.match(/matchId=(\d+)/)?.[1] || '';
+
+  const playerMap = {};
+
+  // ── Step 1: Extract metadata ──────────────────────────────────
+  const vsM = raw.match(/(?:vs\.?\s+|versus\s+)([\w\s]+?)(?:\s*[-–(]|\s*\d)/i);
+  if (vsM && !/sunrisers|manteca/i.test(vsM[1]))
+    result.opponent = vsM[1].trim().slice(0, 60);
+  const totM = raw.match(/[Tt]otal[^0-9]*(\d{2,3})\s*[\/\(]/);
+  if (totM) result.total = parseInt(totM[1]);
+  const dateM = raw.match(/\b(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\b/);
+  if (dateM) { try { const d=new Date(dateM[1]); if (!isNaN(d)) result.date=d.toISOString().slice(0,10); } catch(e){} }
+
+  // ── Step 2: Extract DNB players ───────────────────────────────
+  const dnbM = raw.match(/[Dd]id\s*not\s*bat\s*:?\s*([^\n]+)/);
+  if (dnbM) {
+    dnbM[1].split(/[,;&]+/).forEach(nm => {
+      nm = nm.replace(/[^a-zA-Z\s'.\-]/g, '').trim();
+      if (nm.length >= 3 && !playerMap[nm]) playerMap[nm] = _ep(nm, true);
+    });
+  }
+
+  // ── Step 3: Find batting section (strip header + extras/total junk) ──
+  // Remove everything before the first actual player name
+  // CricClubs batting header looks like: "...RB4s6sSR PlayerName..."
+  // We split at the LAST occurrence of header columns before player names
+  let batSection = raw;
+
+  // Strip from "Extras" or "Total" (end of batting)
+  batSection = batSection.replace(/Extras[\s\S]*/i, '').trim();
+
+  // Strip CricClubs batting table header: "RB4s6sSR" squashed before first player name
+  // Pattern: junk ending in "SR " or "SR" immediately before a capital player name
+  batSection = batSection.replace(/^[\s\S]*?(?:RB4s6sSR\s*|SR\s+)(?=[A-Z][a-z])/i, '').trim();
+
+  // If that didn't work, find first player: capital word(s) that look like a name
+  // (not "MTCA" or all-caps)
+  if (/^[A-Z]{3,}/.test(batSection)) {
+    const firstPlayerM = batSection.match(/(?:^|\s)([A-Z][a-z]{1,}(?:\s+[A-Z][a-z]{1,})+)/);
+    if (firstPlayerM) {
+      batSection = batSection.slice(batSection.indexOf(firstPlayerM[1]));
+    }
+  }
+
+  // ── Step 4: Split batting section into individual player blocks ──
+  // Each block ends with the decimal SR (e.g. "0.00", "34.48", "170.83")
+  // Blocks are separated by one or more spaces before the next player name
+  // Split pattern: look for decimal.2digits followed by space(s) and capital letter
+
+  // Add sentinel to catch last player
+  const batWithSentinel = batSection;
+
+  // Find all SR decimal positions
+  const srRegex = /(\d+\.\d{2})\s+([A-Z][a-z])/g;
+  const splitPositions = [];
+  let m;
+  while ((m = srRegex.exec(batWithSentinel)) !== null) {
+    splitPositions.push({ pos: m.index + m[1].length, nextStart: m.index + m[0].length - m[2].length });
+  }
+
+  // Extract blocks by cutting at each split position
+  const batBlocks = [];
+  let blockStart = 0;
+  for (const sp of splitPositions) {
+    batBlocks.push(batWithSentinel.slice(blockStart, sp.pos).trim());
+    blockStart = sp.nextStart;
+  }
+  batBlocks.push(batWithSentinel.slice(blockStart).trim()); // last block
+
+  // ── Step 5: Parse each batting block ──────────────────────────
+  let batPos = 0;
+  for (const block of batBlocks) {
+    if (!block || block.length < 4) continue;
+
+    // Find the SR decimal at the END of this block
+    const srEndM = block.match(/(\d+\.\d{2})\s*$/);
+    if (!srEndM) continue;
+    const srStr = srEndM[1];
+
+    // Everything before the SR
+    const beforeSR = block.slice(0, block.lastIndexOf(srStr)).trimEnd();
+    if (!beforeSR) continue;
+
+    // Find last alpha→digit boundary: that's where name/dismissal ends, numbers start
+    // Walk BACKWARDS to find: [letter/space] followed by [digit]
+    let numStart = -1;
+    for (let i = beforeSR.length - 1; i >= 0; i--) {
+      const ch = beforeSR[i];
+      if (/[a-zA-Z†* ]/.test(ch)) {
+        // Skip trailing spaces
+        let j = i + 1;
+        while (j < beforeSR.length && beforeSR[j] === ' ') j++;
+        if (j < beforeSR.length && /\d/.test(beforeSR[j])) {
+          numStart = j;
+          break;
+        }
+      }
+    }
+
+    let nameRaw, numStr;
+    if (numStart >= 0) {
+      nameRaw = beforeSR.slice(0, numStart);
+      numStr  = (beforeSR.slice(numStart) + srStr).replace(/\s/g, '');
+    } else {
+      // No intermediate digits — the number block is ONLY the SR
+      // e.g. a 0-run batter with very short number sequence
+      nameRaw = beforeSR;
+      numStr  = srStr;
+    }
+
+    const name = cleanBatName(nameRaw);
+    if (!name || name.length < 2 || /^(MTCA|Total|Extras|target|overs|innings)/i.test(name)) continue;
+    if (!/[A-Z][a-z]/.test(name)) continue; // must have at least one proper title-case word
+
+    const parsed = parseCricketNumBlock(numStr);
+    if (!parsed) continue;
+    const [runs, balls, fours, sixes] = parsed;
+    // Detect "not out" from the raw block text before the numbers
+    const isNotOut = /not\s*out/i.test(nameRaw);
+
+    batPos++;
+    if (!playerMap[name]) playerMap[name] = _ep(name);
+    const p = playerMap[name];
+    p.batPos = batPos; p.dnb = false; p.notOut = isNotOut;
+    p.runs = runs; p.balls = balls; p.fours = fours; p.sixes = sixes;
+  }
+
+  // ── Step 6: Parse bowling section ─────────────────────────────
+  // Find bowling section: after "Bowling" keyword
+  const bowlSectionM = raw.match(/[Bb]owl(?:ing)?\s*(?:OM\s*Dot|O\s*M|\n)([\s\S]+?)(?:\n\n|$)/);
+  const bowlRaw = bowlSectionM ? bowlSectionM[1] : raw;
+
+  // Split bowling on capital-letter boundaries (each bowler starts with a name)
+  const bowlBlocks = bowlRaw.split(/(?<=[\d\)])(?=[A-Z][a-z])/).filter(b => b.trim());
+
+  for (const block of bowlBlocks) {
+    if (!block.trim()) continue;
+
+    // Extract extras from parentheses: (6 w1 nb) or (2 w) or (0 w1 nb)
+    let wides = 0, noballs = 0;
+    const extM = block.match(/\(([^)]+)\)/);
+    if (extM) {
+      const wm = extM[1].match(/(\d+)\s*w(?!b)/);
+      const nm = extM[1].match(/(\d+)\s*nb/);
+      if (wm) wides   = parseInt(wm[1]);
+      if (nm) noballs = parseInt(nm[1]);
+    }
+
+    // Clean block (remove parens content)
+    const clean = block.replace(/\([^)]*\)/g, '').trim();
+
+    // Find first digit position — that's where name ends, numbers start
+    const firstDigitM = clean.match(/\d/);
+    if (!firstDigitM) continue;
+    const fd = clean.indexOf(firstDigitM[0]);
+
+    const nameRaw = clean.slice(0, fd).replace(/[*†]/g, '').replace(/\s+/g,' ').trim();
+    if (!nameRaw || nameRaw.length < 2) continue;
+
+    // Numbers: O  M  Dot  R  W  Eco
+    const nums = (clean.slice(fd).match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    if (nums.length < 4) continue;
+
+    const overs = nums[0];
+    if (isNaN(overs) || overs > 25) continue;
+
+    // Columns after overs: M, Dot, R, W, Eco
+    // CricClubs: O M Dot R W Econ
+    let runsGiven = 0, wkts = 0;
+    if (nums.length >= 6) { runsGiven = nums[3]; wkts = nums[4]; }
+    else if (nums.length >= 5) { runsGiven = nums[2]; wkts = nums[3]; }
+    else if (nums.length >= 4) { runsGiven = nums[1]; wkts = nums[2]; }
+
+    const name = nameRaw.replace(/\s+/g, ' ').trim();
+    if (!playerMap[name]) playerMap[name] = _ep(name, true);
+    const p = playerMap[name];
+    p.overs     = overs;
+    p.wkts      = isNaN(wkts)      ? 0 : Math.round(wkts);
+    p.runsGiven = isNaN(runsGiven) ? 0 : Math.round(runsGiven);
+    p.extras    = wides + noballs;
+  }
+
+  // ── Step 7: Also handle tab-separated format (clean table copy) ──
+  // If batting parse got nothing, try line-by-line
+  const battersFound = Object.values(playerMap).filter(p => !p.dnb).length;
+  if (battersFound === 0) {
+    let section = null, lBatPos = 0;
+    const lines = raw.split('\n').map(l => l.replace(/\t/g,'  ').trim()).filter(l=>l);
+    for (const line of lines) {
+      if (/^batting$|batsman|batter|^r\s+b\s+4s/i.test(line)) { section='bat'; continue; }
+      if (/^bowling$|bowler|^o\s+m\s/i.test(line)) { section='bowl'; continue; }
+      if (/did not bat/i.test(line)) {
+        line.replace(/did not bat:?/gi,'').split(/[,;&]+/).forEach(nm=>{
+          nm=nm.replace(/[^a-zA-Z\s'.\-]/g,'').trim();
+          if(nm.length>=3&&!playerMap[nm])playerMap[nm]=_ep(nm,true);
+        }); continue;
+      }
+      if (!section || !/^[A-Z]/.test(line)) continue;
+      const nums=[...line.matchAll(/\b(\d+(?:\.\d+)?)\b/g)].map(m=>parseFloat(m[1]));
+      if (nums.length < 2) continue;
+      const nameM = line.match(/^([A-Z][a-zA-Z'.\-]+(?:\s+[A-Z][a-zA-Z'.\-]+){0,4})/);
+      if (!nameM) continue;
+      if (section==='bat') {
+        let runs,balls,fours=0,sixes=0;
+        const sr=nums[nums.length-1];
+        if(nums.length>=5&&sr%1!==0){sixes=nums[nums.length-2];fours=nums[nums.length-3];balls=nums[nums.length-4];runs=nums[nums.length-5];}
+        else if(nums.length>=4){sixes=nums[nums.length-1];fours=nums[nums.length-2];balls=nums[nums.length-3];runs=nums[nums.length-4];}
+        else{balls=nums[nums.length-1];runs=nums[nums.length-2];}
+        const name=cleanBatName(nameM[1]);
+        if(!name||name.length<2) continue;
+        lBatPos++;
+        if(!playerMap[name])playerMap[name]=_ep(name);
+        const p=playerMap[name]; p.batPos=lBatPos; p.dnb=false;
+        p.runs=runs||0; p.balls=balls||0; p.fours=fours||0; p.sixes=sixes||0;
+      } else if(section==='bowl') {
+        if(nums.length<4) continue;
+        const overs=nums[0]; let rg,wk;
+        if(nums.length>=6){rg=nums[3];wk=nums[4];}
+        else if(nums.length>=5){rg=nums[2];wk=nums[3];}
+        else{rg=nums[1];wk=nums[2];}
+        if(isNaN(overs)||overs>25) continue;
+        const name=nameM[1].replace(/[*†]/g,'').trim();
+        if(!name||name.length<2) continue;
+        if(!playerMap[name])playerMap[name]=_ep(name,true);
+        const p=playerMap[name]; p.overs=overs; p.wkts=wk||0; p.runsGiven=rg||0;
+      }
+    }
+  }
+
+  result.players = Object.values(playerMap)
+    .filter(p => p.name.length >= 2)
+    .sort((a, b) => (a.dnb?1:0)-(b.dnb?1:0) || (a.batPos||99)-(b.batPos||99));
+  return result.players.length > 0 ? result : null;
+}
+
+
+
+function applyParsedMatch(data) {
+  if (data.matchId) document.getElementById('am-id').value    = data.matchId;
+  if (data.date)    document.getElementById('am-date').value  = data.date;
+  if (data.opponent)document.getElementById('am-opp').value   = data.opponent;
+  if (data.total)   document.getElementById('am-total').value = data.total;
+  document.getElementById('players-container').innerHTML = '';
+  playerRowCount = 0;
+  (data.players||[]).forEach(p => addPlayerRow(p));
+  while (playerRowCount < 11) addPlayerRow({batPos: playerRowCount+1});
+  document.getElementById('am-id').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function setFetchStatus(msg, cls) {
+  const el = document.getElementById('fetch-status');
+  el.style.display='block'; el.innerHTML=`<span class="${cls}">${msg}</span>`;
+}
+
+// Stub — server flow removed since 403 confirmed
+function checkServer() {}
+function importViaServer() {
+  setFetchStatus('✗ CricClubs requires login — HTTP 403. Please use the paste method above.','fetch-err');
+}
+
+// ── Add Match form ────────────────────────────────────────────────
+let playerRowCount = 0;
+let votedRowCount = 0;
+let editingMatchId = null;   // null = new match, string = editing existing
+
+// Build/update the shared player-name datalist from all known players
+function refreshPlayerDatalist() {
+  let dl = document.getElementById('player-names-list');
+  if (!dl) {
+    dl = document.createElement('datalist');
+    dl.id = 'player-names-list';
+    document.body.appendChild(dl);
+  }
+  const names = aggregatePlayers().map(p => p.name);
+  // Also add priority players
+  state.priority.forEach(p => { if (!names.includes(p.name)) names.push(p.name); });
+  dl.innerHTML = names.map(n => `<option value="${n.replace(/"/g,'&quot;')}"></option>`).join('');
+}
+
+function addPlayerRow(data = {}) {
+  playerRowCount++;
+  const id = `pr-${playerRowCount}`;
+  const isDNB = data.dnb === true || (!data.name && data.dnb !== false);
+  const div = document.createElement('div');
+  div.className = `player-row${isDNB ? ' dnb-row' : ''}`;
+  div.id = id;
+
+  const disAttr = isDNB ? ' disabled' : '';
+  const runVal  = isDNB ? '' : (data.runs  !== undefined ? data.runs  : '');
+  const ballVal = isDNB ? '' : (data.balls !== undefined ? data.balls : '');
+  const fourVal = isDNB ? '' : (data.fours !== undefined ? data.fours : '');
+  const sixVal  = isDNB ? '' : (data.sixes !== undefined ? data.sixes : '');
+
+  // Smart bat position: use nextBatPos() to guarantee no duplicates
+  let batVal;
+  if (isDNB) {
+    batVal = '';
+  } else if (data.batPos) {
+    batVal = data.batPos;
+  } else {
+    batVal = nextBatPos(id); // next unused slot
+  }
+
+  const isNO = data.notOut === true;
+  const n = `inputmode="numeric" pattern="[0-9]*"`;
+  const nd = `inputmode="decimal" pattern="[0-9.]*"`;
+
+  div.innerHTML = `
+    <div class="pr-top">
+      <div class="row-num">${playerRowCount}</div>
+      <input placeholder="Player name" class="pr-name" value="${data.name||''}"
+        list="player-names-list" autocomplete="off" style="font-weight:600;min-width:0"
+        oninput="onPlayerNameInput('${id}', this.value)"/>
+      <div class="pr-bat-dnb">
+        <input type="number" ${n} placeholder="Pos" min="1" max="11" class="pr-bat"
+          value="${batVal}" data-prev-val="${batVal}"${isDNB?' disabled':''}
+          style="width:48px;text-align:center"
+          oninput="onBatPosChange('${id}', this.value)"
+          onchange="onBatPosChange('${id}', this.value)"/>
+        <label class="dnb-toggle${isDNB?' active':''}" title="Did not bat">
+          <input type="checkbox" class="pr-dnb" onchange="toggleDNB('${id}',this.checked)"${isDNB?' checked':''}> DNB
+        </label>
+        <label class="dnb-toggle${isNO?' active':''}" title="Not Out (+10 pts)"
+          style="color:var(--grn-d);margin-left:4px;${isDNB?' opacity:.3;pointer-events:none':''}">
+          <input type="checkbox" class="pr-notout" onchange="toggleNotOut('${id}',this.checked)"
+            ${isNO?' checked':''}${isDNB?' disabled':''} style="accent-color:var(--grn)"> N/O
+        </label>
+      </div>
+      <button class="btn btn-danger btn-sm" style="padding:3px 9px;font-size:12px" onclick="removeRow('${id}')">✕</button>
+    </div>
+    <div class="pr-bottom">
+      <div><div class="pr-col-lbl">Runs</div><input type="number" ${n} placeholder="" min="0" class="pr-runs" value="${runVal}"${disAttr}/></div>
+      <div><div class="pr-col-lbl">Balls</div><input type="number" ${n} placeholder="" min="0" class="pr-balls" value="${ballVal}"${disAttr}/></div>
+      <div><div class="pr-col-lbl">4s</div><input type="number" ${n} placeholder="" min="0" class="pr-fours" value="${fourVal}"${disAttr}/></div>
+      <div><div class="pr-col-lbl">6s</div><input type="number" ${n} placeholder="" min="0" class="pr-sixes" value="${sixVal}"${disAttr}/></div>
+      <div class="pr-sep"></div>
+      <div><div class="pr-col-lbl">Overs</div><input type="number" ${nd} placeholder="" min="0" step="0.1" class="pr-overs" value="${data.overs!==undefined?data.overs:''}"/></div>
+      <div><div class="pr-col-lbl">Runs Gvn</div><input type="number" ${n} placeholder="" min="0" class="pr-runs-given" value="${data.runsGiven!==undefined?data.runsGiven:''}"/></div>
+      <div><div class="pr-col-lbl">Wkts</div><input type="number" ${n} placeholder="" min="0" class="pr-wkts" value="${data.wkts!==undefined?data.wkts:''}"/></div>
+      <div><div class="pr-col-lbl" style="color:var(--red)">Extras</div><input type="number" ${n} placeholder="" min="0" class="pr-extras" value="${data.extras!==undefined?data.extras:''}" style="border-color:#FECACA"/></div>
+      <div><div class="pr-col-lbl" style="color:var(--blu)">Ct</div><input type="number" ${n} placeholder="" min="0" class="pr-catches" value="${data.catches!==undefined?data.catches:''}" style="border-color:#BFDBFE"/></div>
+      <div><div class="pr-col-lbl" style="color:var(--blu)">RO</div><input type="number" ${n} placeholder="" min="0" class="pr-runouts" value="${data.runOuts!==undefined?data.runOuts:''}" style="border-color:#BFDBFE"/></div>
+      <div><div class="pr-col-lbl" style="color:var(--blu)">St</div><input type="number" ${n} placeholder="" min="0" class="pr-stumpings" value="${data.stumpings!==undefined?data.stumpings:''}" style="border-color:#BFDBFE"/></div>
+    </div>`;
+  document.getElementById('players-container').appendChild(div);
+}
+
+// ── Bat position helpers ──────────────────────────────────────────
+
+// Get all currently used bat positions (non-DNB rows)
+function usedBatPositions(excludeRowId) {
+  return [...document.querySelectorAll('#players-container .player-row:not(.dnb-row)')]
+    .filter(r => r.id !== excludeRowId)
+    .map(r => parseInt(r.querySelector('.pr-bat')?.value) || 0)
+    .filter(v => v > 0);
+}
+
+// Find next unused bat position starting from 1
+function nextBatPos(excludeRowId) {
+  const used = new Set(usedBatPositions(excludeRowId));
+  for (let pos = 1; pos <= 11; pos++) {
+    if (!used.has(pos)) return pos;
+  }
+  return used.size + 1; // overflow safety
+}
+
+// Called when user manually changes a bat position field
+// If the new value clashes with another row, swap the two rows' positions
+function onBatPosChange(rowId, newVal) {
+  const val = parseInt(newVal);
+  if (!val || val < 1) return;
+  const thisRow = document.getElementById(rowId);
+  if (!thisRow) return;
+  const thisInput = thisRow.querySelector('.pr-bat');
+  const allNonDNB = [...document.querySelectorAll('#players-container .player-row:not(.dnb-row)')];
+  // Find any other row that already has this position
+  const clash = allNonDNB.find(r => r.id !== rowId && parseInt(r.querySelector('.pr-bat')?.value) === val);
+  if (clash) {
+    // Swap: give the clashing row the previous value of this row
+    const oldVal = parseInt(thisInput.dataset.prevVal) || nextBatPos(rowId);
+    const clashInput = clash.querySelector('.pr-bat');
+    clashInput.value = oldVal;
+    clashInput.dataset.prevVal = String(oldVal);
+    // Flash the swapped field to show the user what moved
+    clashInput.style.background = '#FEF9C3';
+    setTimeout(() => clashInput.style.background = '', 700);
+  }
+  thisInput.dataset.prevVal = String(val);
+}
+
+// When a name is typed/selected, auto-uncheck DNB and assign next available bat pos
+function onPlayerNameInput(rowId, value) {
+  if (!value.trim()) return;
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  const dnbCb = row.querySelector('.pr-dnb');
+  if (dnbCb && dnbCb.checked) {
+    dnbCb.checked = false;
+    toggleDNB(rowId, false);
+  }
+  // Assign bat position if empty
+  const batInput = row.querySelector('.pr-bat');
+  if (batInput && !batInput.value) {
+    const pos = nextBatPos(rowId);
+    batInput.value = pos;
+    batInput.dataset.prevVal = pos;
+  }
+}
+
+function toggleDNB(rowId, checked) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  row.classList.toggle('dnb-row', checked);
+  row.classList.remove('notout-row');
+  const dnbLabel = row.querySelector('.pr-dnb')?.closest('label');
+  if (dnbLabel) dnbLabel.classList.toggle('active', checked);
+  const batInput = row.querySelector('.pr-bat');
+  const batFields = [batInput, row.querySelector('.pr-runs'), row.querySelector('.pr-balls'),
+                     row.querySelector('.pr-fours'), row.querySelector('.pr-sixes')];
+  batFields.forEach(f => { if(f){ f.disabled = checked; if(checked) f.value = ''; } });
+  // Disable/enable N/O
+  const noCb = row.querySelector('.pr-notout');
+  const noLabel = noCb?.closest('label');
+  if (noCb) { noCb.disabled = checked; noCb.checked = false; }
+  if (noLabel) { noLabel.style.opacity = checked ? '0.3':'1'; noLabel.style.pointerEvents = checked ? 'none':''; }
+  if (batInput) batInput.style.background = checked ? '#F1F5F9' : '';
+  // When un-DNB'ing, assign the next available bat position
+  if (!checked && batInput && !batInput.value) {
+    const pos = nextBatPos(rowId);
+    batInput.value = pos;
+    batInput.dataset.prevVal = String(pos);
+  }
+}
+
+function toggleNotOut(rowId, checked) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  row.classList.toggle('notout-row', checked);
+  const noLabel = row.querySelector('.pr-notout')?.closest('label');
+  if (noLabel) noLabel.classList.toggle('active', checked);
+}
+
+function addVotedRow(data = {}) {
+  votedRowCount++;
+  const id = `vr-${votedRowCount}`;
+  const div = document.createElement('div');
+  div.className = 'voted-player-row';
+  div.id = id;
+  div.innerHTML = `
+    <div class="row-num">⭐</div>
+    <div class="field"><input placeholder="Player name" class="vr-name" value="${data.name||''}"
+      list="player-names-list" autocomplete="off"/></div>
+    <div class="field">
+      <select class="vr-role">
+        <option${data.role==='Batsman'?' selected':''}>Batsman</option>
+        <option${data.role==='Bowler'?' selected':''}>Bowler</option>
+        <option${data.role==='All-rounder'?' selected':''}>All-rounder</option>
+        <option${data.role==='WK-Batsman'?' selected':''}>WK-Batsman</option>
+      </select>
+    </div>
+    <div class="field"><input placeholder="Reason not selected…" class="vr-reason" value="${data.reason||''}"/></div>
+    <button class="btn btn-danger btn-sm" style="align-self:flex-end;margin-bottom:1px" onclick="removeRow('${id}')">✕</button>`;
+  document.getElementById('voted-container').appendChild(div);
+}
+
+function removeRow(id) {
+  document.getElementById(id)?.remove();
+}
+
+function getPlayerRows() {
+  return [...document.querySelectorAll('.player-row')].map(row => {
+    const dnb = row.querySelector('.pr-dnb')?.checked || false;
+    return {
+      name:      row.querySelector('.pr-name').value.trim(),
+      dnb,
+      notOut:    !dnb && (row.querySelector('.pr-notout')?.checked || false),
+      batPos:    dnb ? null : (+row.querySelector('.pr-bat').value || null),
+      runs:      dnb ? null : (+row.querySelector('.pr-runs').value || 0),
+      balls:     dnb ? null : (+row.querySelector('.pr-balls').value || 0),
+      fours:     dnb ? null : (+row.querySelector('.pr-fours').value || 0),
+      sixes:     dnb ? null : (+row.querySelector('.pr-sixes').value || 0),
+      overs:     +row.querySelector('.pr-overs').value || 0,
+      wkts:      +row.querySelector('.pr-wkts').value || 0,
+      runsGiven: +row.querySelector('.pr-runs-given').value || 0,
+      extras:    +row.querySelector('.pr-extras').value || 0,
+      catches:   +row.querySelector('.pr-catches').value || 0,
+      runOuts:   +row.querySelector('.pr-runouts').value || 0,
+      stumpings: +row.querySelector('.pr-stumpings').value || 0,
+    };
+  }).filter(p => p.name);
+}
+
+function getVotedRows() {
+  return [...document.querySelectorAll('.voted-player-row')].map(row => ({
+    name:   row.querySelector('.vr-name').value.trim(),
+    role:   row.querySelector('.vr-role').value,
+    reason: row.querySelector('.vr-reason').value.trim(),
+  })).filter(v => v.name);
+}
+
+function saveMatch() {
+  const id      = document.getElementById('am-id').value.trim();
+  const date    = document.getElementById('am-date').value;
+  const opp     = document.getElementById('am-opp').value.trim();
+  const total   = +document.getElementById('am-total').value || 0;
+  const result  = document.getElementById('am-result').value;
+  const impactIn  = document.getElementById('am-impact-in').value.trim();
+  const impactOut = document.getElementById('am-impact-out').value.trim();
+  const players = getPlayerRows();
+  const voted   = getVotedRows();
+
+  if (!id)                  { toast('⚠ Please enter a Match ID'); return; }
+  if (!opp)                 { toast('⚠ Please enter opponent name'); return; }
+  if (players.length === 0) { toast('⚠ Add at least one player'); return; }
+
+  if (editingMatchId) {
+    // ── UPDATE existing match ──────────────────────────────────
+    const idx = state.matches.findIndex(m => m.id === editingMatchId);
+    if (idx < 0) { toast('⚠ Match not found'); return; }
+    // If ID changed, check it doesn't clash with another match
+    if (id !== editingMatchId && state.matches.find(m => m.id === id)) {
+      toast('⚠ Match ID already used by another match'); return;
+    }
+    state.matches[idx] = { id, date, opponent: opp, total, result, impactIn, impactOut, players };
+    const votedMsg = voted.length > 0 ? ` · ${voted.length} voted player(s) updated` : '';
+    voted.forEach(v => {
+      const existing = state.priority.find(p => p.name.toLowerCase() === v.name.toLowerCase());
+      if (existing) { existing.match = id; if (v.reason) existing.notes = v.reason; }
+      else state.priority.push({ name: v.name, role: v.role, match: id, skipped: 1, notes: v.reason });
+    });
+    saveState();
+    clearMatchForm();
+    renderAll();
+    toast(`✓ Match ${id} updated — ${players.length} players${votedMsg}`);
+    document.querySelectorAll('.nav-btn')[0].click(); // go to Dashboard
+  } else {
+    // ── ADD new match ──────────────────────────────────────────
+    if (state.matches.find(m => m.id === id)) { toast('⚠ Match ID already exists'); return; }
+    state.matches.push({ id, date, opponent: opp, total, result, impactIn, impactOut, players });
+    voted.forEach(v => {
+      const existing = state.priority.find(p => p.name.toLowerCase() === v.name.toLowerCase());
+      if (existing) { existing.skipped = (+existing.skipped || 1) + 1; existing.match = id; if (v.reason) existing.notes = v.reason; }
+      else state.priority.push({ name: v.name, role: v.role, match: id, skipped: 1, notes: v.reason });
+    });
+    saveState();
+    clearMatchForm();
+    renderAll();
+    const votedMsg = voted.length > 0 ? ` · ${voted.length} voted player(s) added to priority queue` : '';
+    toast(`✓ Match ${id} saved — ${players.length} players tracked${votedMsg}`);
+    document.querySelectorAll('.nav-btn')[2].click();
+  }
+}
+
+function editMatch(id) {
+  requireAdmin(() => _editMatch(id));
+}
+function _editMatch(id) {
+  const m = state.matches.find(m => m.id === id);
+  if (!m) return;
+
+  // Switch to Add Match tab
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-add-match').classList.add('active');
+  document.querySelectorAll('.nav-btn')[1].classList.add('active');
+
+  // Set edit mode
+  editingMatchId = id;
+  document.getElementById('match-form-title').textContent = 'Edit Match Details';
+  document.getElementById('edit-mode-badge').style.display = 'inline-block';
+  document.getElementById('edit-mode-badge').textContent = `Editing: ${id}`;
+  document.getElementById('save-match-btn').textContent = '💾 Update Match';
+  document.getElementById('am-id').value = m.id;
+  document.getElementById('am-id').style.background = '#FFFBEB';  // highlight ID field
+  document.getElementById('am-date').value = m.date || '';
+  document.getElementById('am-opp').value = m.opponent || '';
+  document.getElementById('am-total').value = m.total || '';
+  document.getElementById('am-result').value = m.result || '';
+  document.getElementById('am-impact-in').value  = m.impactIn  || '';
+  document.getElementById('am-impact-out').value = m.impactOut || '';
+
+  // Load players
+  document.getElementById('players-container').innerHTML = '';
+  document.getElementById('voted-container').innerHTML = '';
+  playerRowCount = 0;
+  votedRowCount = 0;
+  refreshPlayerDatalist();
+  m.players.forEach(p => addPlayerRow(p));
+  // Pad to at least 11 rows
+  while (playerRowCount < 11) addPlayerRow({ batPos: playerRowCount + 1 });
+
+  // Scroll to top of form
+  document.getElementById('am-id').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  toast(`✏ Editing Match ${id} — make changes and click Update Match`);
+}
+
+function deleteMatch(id) {
+  requireAdmin(() => _deleteMatch(id));
+}
+function _deleteMatch(id) {
+  const m = state.matches.find(m => m.id === id);
+  if (!m) return;
+  const playerCount = m.players.filter(p => p.name.trim()).length;
+  if (!confirm(`Delete Match ${id} (vs ${m.opponent || 'Unknown'}, ${playerCount} players)?\n\nThis will remove all player stats for this match and cannot be undone.`)) return;
+  state.matches = state.matches.filter(m => m.id !== id);
+  // If currently editing this match, clear the form
+  if (editingMatchId === id) clearMatchForm();
+  saveState();
+  renderAll();
+  toast(`🗑 Match ${id} deleted`);
+}
+
+function clearMatchForm() {
+  editingMatchId = null;
+  ['am-id','am-date','am-opp','am-total','am-impact-in','am-impact-out'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('am-id').style.background = '';
+  document.getElementById('am-result').value = '';
+  document.getElementById('players-container').innerHTML = '';
+  document.getElementById('voted-container').innerHTML = '';
+  document.getElementById('match-form-title').textContent = 'Match Details';
+  document.getElementById('edit-mode-badge').style.display = 'none';
+  document.getElementById('save-match-btn').textContent = '💾 Save Match & Calculate Scores';
+  playerRowCount = 0;
+  votedRowCount = 0;
+  refreshPlayerDatalist();
+  for (let i = 0; i < 11; i++) addPlayerRow({ batPos: i + 1 });
+}
+
+
+// ── Priority (rendered in Next XI tab now) ─────────────────────────
+function renderPriority() {
+  const el = document.getElementById('priority-list');
+  if (!el) return;
+  if (state.priority.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="e-icon">⭐</div><p>No priority players yet — add voted players in the Add Match form.</p></div>';
+    return;
+  }
+  el.innerHTML = state.priority.map((p, i) => {
+    const skipped = +p.skipped || 1;
+    let status, statusClass;
+    if (skipped >= 3) { status = '<span class="badge b-must">MUST SELECT NOW</span>'; statusClass = 'must'; }
+    else if (skipped >= 2) { status = '<span class="badge b-amber">High Priority</span>'; statusClass = ''; }
+    else { status = '<span class="badge b-blue">Priority</span>'; statusClass = ''; }
+
+    return `<div class="priority-item ${statusClass}">
+      <div class="priority-rank">#${i+1}</div>
+      <div class="priority-info">
+        <div class="priority-name">${p.name} <span class="badge b-gray">${p.role}</span></div>
+        <div class="priority-meta">${p.match||'—'} · Skipped ${skipped}× ${p.notes ? '· '+p.notes : ''}</div>
+      </div>
+      <div class="priority-actions">
+        ${status}
+        <button class="btn btn-sm" onclick="bumpSkipped(${i})">+1 skip</button>
+        <button class="btn btn-green btn-sm" onclick="markSelected(${i})">✓ Selected</button>
+        <button class="btn btn-danger btn-sm" onclick="removePriority(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function bumpSkipped(i) {
+  state.priority[i].skipped = (+state.priority[i].skipped || 1) + 1;
+  saveState(); renderPriority(); renderXI();
+  toast(`${state.priority[i].name} — skipped ${state.priority[i].skipped}×`);
+}
+
+function markSelected(i) {
+  const name = state.priority[i].name;
+  state.priority.splice(i, 1);
+  saveState(); renderPriority(); renderXI(); updateHeaderMeta();
+  toast(`✓ ${name} marked selected — removed from priority queue`);
+}
+
+function removePriority(i) {
+  const name = state.priority[i].name;
+  state.priority.splice(i, 1);
+  saveState(); renderPriority(); renderXI(); updateHeaderMeta();
+  toast(`${name} removed from priority queue`);
+}
+
+// ── Export ────────────────────────────────────────────────────────
+function exportCSV() {
+  const players = aggregatePlayers().sort((a,b) => b.combined - a.combined);
+  let csv = 'Rank,Player,Matches,AvgBatPos,TotalRuns,AvgSR,TotalOvers,TotalWkts,AvgEconomy,Opportunity,Performance,Combined,Status\n';
+  players.forEach((p, i) => {
+    const status = p.combined >= 70 ? 'Strong Pick' : p.combined >= 50 ? 'Consider' : p.combined >= 35 ? 'Developing' : 'Needs Work';
+    csv += `${i+1},"${p.name}",${p.matches},${p.avgBatPos},${p.totalRuns},${p.avgSR},${p.totalOvers},${p.totalWkts},${p.avgEco??''},${p.opp},${p.perf},${p.combined},${status}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'MTCA_Sunrisers_Scores.csv'; a.click();
+  toast('✓ CSV downloaded');
+}
+
+function copyJSON() {
+  navigator.clipboard.writeText(JSON.stringify(state, null, 2))
+    .then(() => toast('✓ JSON copied — paste to restore later'));
+}
+
+function importJSON() {
+  const raw = prompt('Paste your JSON backup here:');
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed.matches && !parsed.priority) throw new Error('Invalid format');
+    state = { matches: parsed.matches || [], priority: parsed.priority || [] };
+    saveState();
+    renderAll();
+    toast(`✓ Imported ${state.matches.length} matches, ${state.priority.length} priority players`);
+  } catch(e) {
+    toast('✗ Invalid JSON — could not import');
+  }
+}
+
+function clearAll() {
+  if (!confirm('Clear ALL match data and priority players? This cannot be undone.')) return;
+  state = { matches: [], priority: [] };
+  saveState(); renderAll();
+  toast('All data cleared');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+(async () => {
+  try { if (sessionStorage.getItem('mtca_admin') === '1') isAdmin = true; } catch(e) {}
+  applyRole();
+  await loadState();   // loads local instantly, then fetches cloud
+  refreshPlayerDatalist();
+  for (let i = 0; i < 11; i++) addPlayerRow({ batPos: i + 1 });
+  renderAll();
+})();
+</script>
+</body>
+</html>
