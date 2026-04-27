@@ -320,7 +320,7 @@ kbd{font-family:monospace}
   <button class="nav-btn active" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
   <button class="nav-btn" id="nav-add-match" onclick="switchTab('add-match',this)">➕ Add Match</button>
   <button class="nav-btn" onclick="switchTab('scores',this)">🏏 Player Scores</button>
-  <button class="nav-btn" onclick="switchTab('selection',this)">📋 Next XII</button>
+  <button class="nav-btn" id="nav-next-xii" onclick="switchTab('selection',this)">📋 Next XII</button>
 </div>
 
 <!-- ═══ DASHBOARD ════════════════════════════════════════ -->
@@ -620,7 +620,7 @@ function simpleHash(s) {
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
   return Math.abs(h).toString(36);
 }
-const DEFAULT_PIN_HASH = simpleHash('1983');
+const DEFAULT_PIN_HASH = simpleHash('0419');
 
 function getStoredPinHash() {
   try { return localStorage.getItem('mtca_pin_hash') || DEFAULT_PIN_HASH; } catch(e) { return DEFAULT_PIN_HASH; }
@@ -666,20 +666,24 @@ function handleAuthBtn() {
 function applyRole() {
   const badge   = document.getElementById('role-badge');
   const authBtn = document.getElementById('auth-btn');
-  const addNav  = document.getElementById('nav-add-match');
+  const addNav   = document.getElementById('nav-add-match');
+  const xiiNav   = document.getElementById('nav-next-xii');
 
   if (isAdmin) {
     badge.className = 'role-badge role-admin';
     badge.textContent = '🔑 Admin';
     authBtn.textContent = 'Logout';
     if (addNav) addNav.style.display = '';
+    if (xiiNav) xiiNav.style.display = '';
   } else {
     badge.className = 'role-badge role-viewer';
     badge.textContent = '👁 Viewer';
     authBtn.textContent = 'Admin Login';
     if (addNav) addNav.style.display = 'none';
-    // Redirect away from add-match if currently there
-    if (document.getElementById('tab-add-match')?.classList.contains('active')) {
+    if (xiiNav) xiiNav.style.display = 'none';
+    // Redirect away from admin-only tabs
+    const activePanel = document.querySelector('.panel.active');
+    if (activePanel && (activePanel.id === 'tab-add-match' || activePanel.id === 'tab-selection')) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('tab-dashboard').classList.add('active');
@@ -1024,7 +1028,7 @@ function statusBadge(combined) {
 
 // ── Tab switching ───────────────────────────────────────────────
 function switchTab(id, btn) {
-  if (id === 'add-match' && !isAdmin) {
+  if ((id === 'add-match' || id === 'selection') && !isAdmin) {
     document.getElementById('login-overlay').style.display = 'flex';
     setTimeout(() => document.getElementById('pin-input').focus(), 100);
     return;
