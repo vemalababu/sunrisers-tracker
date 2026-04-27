@@ -1012,7 +1012,7 @@ function aggregatePlayers() {
 }
 // ── Score bar HTML ──────────────────────────────────────────────
 function scoreBar(val) {
-  const cls = val >= 70 ? 's-green' : val >= 45 ? 's-amber' : 's-red';
+  const cls = val >= 60 ? 's-green' : val >= 25 ? 's-amber' : 's-red';
   return `<div class="score-wrap ${cls}">
     <div class="bar-bg"><div class="bar-fill" style="width:${val}%"></div></div>
     <span class="score-num">${val}</span>
@@ -1020,10 +1020,9 @@ function scoreBar(val) {
 }
 
 function statusBadge(combined) {
-  if (combined >= 70) return '<span class="badge b-green">Strong Pick</span>';
-  if (combined >= 50) return '<span class="badge b-blue">Consider</span>';
-  if (combined >= 35) return '<span class="badge b-amber">Developing</span>';
-  return '<span class="badge b-gray">Needs Work</span>';
+  if (combined >= 60) return '<span class="badge b-green">Strong Pick</span>';
+  if (combined >= 25) return '<span class="badge b-blue">Consider</span>';
+  return '<span class="badge b-gray">Developing</span>';
 }
 
 // ── Tab switching ───────────────────────────────────────────────
