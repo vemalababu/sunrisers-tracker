@@ -601,9 +601,32 @@ kbd{font-family:monospace}
       <button class="btn btn-primary admin-action" onclick="exportCSV()">⬇ Download CSV</button>
       <button class="btn admin-action" onclick="copyJSON()">📋 Copy JSON (backup)</button>
       <button class="btn admin-action" onclick="importJSON()" id="import-json-btn">📥 Import JSON</button>
-      <button class="btn admin-action" style="background:#F5F3FF;color:#6D28D9;border-color:#DDD6FE" onclick="setupJSONBin()" id="cloud-setup-btn">☁ Configure Cloud Sync</button>
+      <button class="btn admin-action" style="background:#F5F3FF;color:#6D28D9;border-color:#DDD6FE" onclick="toggleCloudSetup()" id="cloud-setup-btn">☁ Configure Cloud Sync</button>
       <button class="btn btn-danger btn-sm admin-action" onclick="clearAll()" style="margin-left:auto">🗑 Clear All Data</button>
       <p id="export-viewer-msg" style="font-size:12px;color:var(--ink3);display:none">🔒 Export options are admin-only. Log in as admin to access.</p>
+    </div>
+    <!-- Cloud setup panel (admin only) -->
+    <div id="cloud-setup-panel" style="display:none;margin-top:12px;padding:14px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:10px">
+      <div style="font-size:13px;font-weight:700;color:#6D28D9;margin-bottom:10px">☁ JSONBin Cloud Sync Setup</div>
+      <div style="font-size:12px;color:#7C3AED;margin-bottom:12px;line-height:1.6">
+        Enter your credentials once — they save to this browser automatically.<br>
+        For permanent setup on all devices, paste them into <code style="background:#EDE9FE;padding:1px 5px;border-radius:4px">index.html</code> at <code style="background:#EDE9FE;padding:1px 5px;border-radius:4px">JBIN_DEFAULT_KEY</code> and <code style="background:#EDE9FE;padding:1px 5px;border-radius:4px">JBIN_DEFAULT_BIN</code>.
+      </div>
+      <div class="form-grid g2" style="margin-bottom:10px">
+        <div class="field">
+          <label>Master Key</label>
+          <input id="jbin-key-input" type="password" placeholder="$2a$10$..." style="font-family:monospace;font-size:12px"/>
+        </div>
+        <div class="field">
+          <label>Bin ID</label>
+          <input id="jbin-bin-input" placeholder="6630abc123456..." style="font-family:monospace;font-size:12px"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="saveCloudCredentials()">💾 Save & Connect</button>
+        <button class="btn btn-sm" onclick="toggleCloudSetup()">Cancel</button>
+        <span id="cloud-test-result" style="font-size:12px;align-self:center"></span>
+      </div>
     </div>
   </div>
 </div>
@@ -716,12 +739,21 @@ function changeAdminPin(oldPin, newPin) {
 }
 
 // ── Cloud Storage (JSONBin) ───────────────────────────────────────
-// Setup: get a free API key at jsonbin.io, create one bin, paste IDs below.
-// Or call setupJSONBin() from the browser console to configure interactively.
+// Credentials are baked in as defaults — no setup needed on new devices.
+// Override by calling setupJSONBin() from admin panel if you change accounts.
+
+// ▼ PASTE YOUR CREDENTIALS HERE (done once, works everywhere) ▼
+const JBIN_DEFAULT_KEY = '$2a$10$AavyFmBEg45yUoMGJWz1ROgUUTesJ4.woQWtrxV5hK3NVasvm3VCG';  // e.g. '$2a$10$abc...'
+const JBIN_DEFAULT_BIN = '69eea0b136566621a8f5125c';  // e.g. '6630abc123456789abc12345'
+// ▲ ───────────────────────────────────────────────────────────── ▲
 
 const JBIN = {
-  get apiKey()  { try { return localStorage.getItem('mtca_jbin_key')  || ''; } catch(e){ return ''; } },
-  get binId()   { try { return localStorage.getItem('mtca_jbin_bin')  || ''; } catch(e){ return ''; } },
+  get apiKey()  {
+    try { return localStorage.getItem('mtca_jbin_key') || JBIN_DEFAULT_KEY; } catch(e) { return JBIN_DEFAULT_KEY; }
+  },
+  get binId()  {
+    try { return localStorage.getItem('mtca_jbin_bin') || JBIN_DEFAULT_BIN; } catch(e) { return JBIN_DEFAULT_BIN; }
+  },
   configured()  { return !!(this.apiKey && this.binId); }
 };
 
@@ -783,23 +815,22 @@ async function cloudSave(data) {
   }
 }
 
-// Interactive setup wizard (call from browser console OR admin panel)
+// Interactive setup — saves to localStorage for this browser
+// For permanent multi-device setup: paste credentials into JBIN_DEFAULT_KEY/BIN above
 async function setupJSONBin(apiKey, binId) {
   if (!apiKey || !binId) {
-    // Prompt interactively
-    apiKey = prompt('Paste your JSONBin Master Key (from jsonbin.io → API Keys):');
+    apiKey = prompt('Paste your JSONBin Master Key:');
     if (!apiKey) return;
-    binId  = prompt('Paste your Bin ID (from jsonbin.io → Bins → your bin → Bin ID):');
+    binId  = prompt('Paste your Bin ID:');
     if (!binId) return;
   }
   try {
     localStorage.setItem('mtca_jbin_key', apiKey.trim());
     localStorage.setItem('mtca_jbin_bin', binId.trim());
   } catch(e) {}
-  // Test connection
   const res = await cloudLoad();
   if (res !== null) {
-    alert('✓ JSONBin connected! Your data will now sync to the cloud.');
+    alert('✓ JSONBin connected!\n\nTo make this permanent on ALL devices:\n1. Open index.html in a text editor\n2. Find JBIN_DEFAULT_KEY and JBIN_DEFAULT_BIN\n3. Paste your credentials there\n4. Re-upload to GitHub Pages\n\nYou only need to do this once — everyone auto-connects after that.');
     setSyncBadge('ok');
   } else {
     alert('✗ Could not connect. Check your API key and Bin ID.');
@@ -1105,8 +1136,51 @@ function renderDashboard() {
   }).join('');
 }
 
+function toggleCloudSetup() {
+  const panel = document.getElementById('cloud-setup-panel');
+  if (!panel) return;
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  if (open) {
+    // Pre-fill with existing credentials
+    const keyEl = document.getElementById('jbin-key-input');
+    const binEl = document.getElementById('jbin-bin-input');
+    if (keyEl) keyEl.value = JBIN.apiKey || '';
+    if (binEl) binEl.value = JBIN.binId  || '';
+  }
+}
+
+async function saveCloudCredentials() {
+  const key = document.getElementById('jbin-key-input')?.value.trim();
+  const bin = document.getElementById('jbin-bin-input')?.value.trim();
+  const result = document.getElementById('cloud-test-result');
+  if (!key || !bin) { if(result) result.textContent = '⚠ Both fields required'; return; }
+  if (result) result.textContent = '⏳ Testing connection…';
+  try {
+    localStorage.setItem('mtca_jbin_key', key);
+    localStorage.setItem('mtca_jbin_bin', bin);
+  } catch(e) {}
+  const data = await cloudLoad();
+  if (data !== null) {
+    if (result) result.innerHTML = '✅ Connected! Data syncing.';
+    setSyncBadge('ok');
+    // Merge cloud data if it has matches
+    if (data.matches && data.matches.length > 0) {
+      state = { matches: data.matches, priority: data.priority || [], visibleCols: data.visibleCols || null };
+      saveLocalState();
+      renderAll();
+    } else if (state.matches.length > 0) {
+      // Push local data to empty cloud bin
+      await cloudSave(state);
+    }
+    setTimeout(() => toggleCloudSetup(), 1500);
+  } else {
+    if (result) result.textContent = '✗ Connection failed — check credentials';
+    setSyncBadge('error');
+  }
+}
+
 function toggleImportCard() {
-  const card = document.getElementById('cricclubs-import-card');
   const btn  = document.getElementById('import-toggle-btn');
   const open = card.style.display === 'none';
   card.style.display = open ? 'block' : 'none';
