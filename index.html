@@ -145,7 +145,7 @@ th.num{text-align:right}
 .pr-bottom{display:grid;grid-template-columns:auto repeat(4,1fr);
   gap:4px;align-items:end;padding:4px 10px 4px;background:rgba(0,0,0,.018);border-top:1px solid var(--border)}
 /* Row C: bowling — always visible, fields disabled until Did Bowl checked */
-.pr-bowling{display:grid;grid-template-columns:auto repeat(4,1fr);
+.pr-bowling{display:grid;grid-template-columns:auto repeat(4,1fr) auto;
   gap:4px;align-items:end;padding:4px 10px 7px;background:#EFF6FF;border-top:1px dashed #BFDBFE}
 .pr-bowl-toggle{padding:2px 8px 2px 6px;border-radius:20px;font-size:11px;font-weight:600;
   cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--ink3);
@@ -322,6 +322,7 @@ kbd{font-family:monospace}
   <button class="nav-btn" onclick="switchTab('scores',this)">🏏 Player Scores</button>
   <button class="nav-btn" onclick="switchTab('profile',this)">👤 Player Profile</button>
   <button class="nav-btn" id="nav-next-xii" onclick="switchTab('selection',this)">📋 Next XII</button>
+  <button class="nav-btn admin-action" id="nav-umpire" onclick="switchTab('umpire',this)">🟣 Umpiring</button>
 </div>
 
 <!-- ═══ DASHBOARD ════════════════════════════════════════ -->
@@ -341,15 +342,6 @@ kbd{font-family:monospace}
   </div>
 
   <div id="dash-content" style="display:none">
-    <div class="card">
-      <div class="card-title"><span class="icon">🏅</span> Top 5 Players — Combined Score</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Player</th><th class="num">Opp</th><th class="num">Perf</th><th class="num">Combined</th></tr></thead>
-          <tbody id="dash-top5"></tbody>
-        </table>
-      </div>
-    </div>
 
     <div class="card">
       <div class="card-title"><span class="icon">📅</span> Recent Matches</div>
@@ -360,10 +352,79 @@ kbd{font-family:monospace}
         </table>
       </div>
     </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🟣</span> Umpiring Status
+        <span style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:8px">Season rotation tracker</span>
+      </div>
+      <div id="dash-umpire-body">
+        <div style="color:var(--ink3);font-size:13px">No umpiring data yet. Admin can set up assignments in the Umpiring tab.</div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ═══ UMPIRE MANAGEMENT (admin only) ══════════════════════ -->
+<div id="tab-umpire" class="panel">
+  <div class="card">
+    <div class="card-title"><span class="icon">🟣</span> Umpire Assignment Manager</div>
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;line-height:1.6">
+      Track which players are assigned to umpire, and which have completed their duty. Each player in the squad should umpire once per season rotation.
+    </div>
+
+    <!-- Add / edit assignment -->
+    <div style="background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:#6D28D9;margin-bottom:10px">➕ Add Assignment</div>
+      <div class="form-grid g3">
+        <div class="field">
+          <label>Player</label>
+          <input id="ump-player" list="player-names-list" placeholder="Select player" autocomplete="off"/>
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input id="ump-date" type="date"/>
+        </div>
+        <div class="field">
+          <label>Match ID (optional)</label>
+          <input id="ump-match" placeholder="e.g. 3001"/>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="ump-status">
+            <option value="assigned">Assigned — upcoming</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid g2" style="margin-top:8px">
+        <div class="field">
+          <label>Notes (optional)</label>
+          <input id="ump-notes" placeholder="e.g. Home match vs Warriors"/>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-primary" onclick="saveUmpireEntry()" style="width:100%">💾 Save Assignment</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assignments table -->
+    <div id="ump-empty" style="color:var(--ink3);font-size:13px;padding:8px 0;display:none">No assignments yet.</div>
+    <div class="table-wrap" id="ump-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Date</th>
+            <th>Match</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ump-tbody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
-<!-- ═══ ADD MATCH ════════════════════════════════════════ -->
 <div id="tab-add-match" class="panel">
 
   <!-- CRICCLUBS IMPORT — hidden by default (paste method unreliable) -->
@@ -502,7 +563,6 @@ kbd{font-family:monospace}
   <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
     <div class="field" style="margin:0">
       <select id="score-sort" onchange="renderScores()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px">
-        <option value="combined">Sort: Combined Score</option>
         <option value="opp">Sort: Opportunity</option>
         <option value="perf">Sort: Performance</option>
         <option value="name">Sort: Name A–Z</option>
@@ -621,6 +681,7 @@ kbd{font-family:monospace}
               <th class="num">RO</th>
               <th class="num">St</th>
             </tr>
+            </tr>
           </thead>
           <tbody id="profile-history-body"></tbody>
         </table>
@@ -650,7 +711,7 @@ kbd{font-family:monospace}
   <div class="card" id="xii-card">
     <div class="card-title"><span class="icon">📋</span> Suggested 12 — Next Match</div>
     <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">
-      Top 12 from the available pool, ranked by Combined Score. Priority players (voted but not selected) are elevated.
+      Top 12 from the available pool, ranked by Opportunity Score. Priority players (voted but not selected) are elevated.
       The captain picks the final XI from these 12.
     </p>
     <div id="xi-list"><div class="empty"><div class="e-icon">📋</div><p>Select available players above and click Generate.</p></div></div>
@@ -773,7 +834,7 @@ function applyRole() {
     if (xiiNav) xiiNav.style.display = 'none';
     // Redirect away from admin-only tabs
     const activePanel = document.querySelector('.panel.active');
-    if (activePanel && (activePanel.id === 'tab-add-match' || activePanel.id === 'tab-selection')) {
+    if (activePanel && (activePanel.id === 'tab-add-match' || activePanel.id === 'tab-selection' || activePanel.id === 'tab-umpire')) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('tab-dashboard').classList.add('active');
@@ -905,12 +966,12 @@ async function setupJSONBin(apiKey, binId) {
 }
 
 // ── State persistence (cloud-first, localStorage fallback) ────────
-let state = { matches: [], priority: [], visibleCols: null };
+let state = { matches: [], priority: [], visibleCols: null, umpiring: [] };
 
 function loadLocalState() {
   try {
     const saved = localStorage.getItem('mtca_sunrisers');
-    if (saved) state = { matches: [], priority: [], visibleCols: null, ...JSON.parse(saved) };
+    if (saved) state = { matches: [], priority: [], visibleCols: null, umpiring: [], ...JSON.parse(saved) };
   } catch(e) {}
 }
 
@@ -934,7 +995,7 @@ async function loadState() {
   const cloud = await cloudLoad();
   if (cloud && (cloud.matches || cloud.priority)) {
     // Cloud data exists — use it (it's more up to date)
-    state = { matches: cloud.matches || [], priority: cloud.priority || [], visibleCols: cloud.visibleCols || null };
+    state = { matches: cloud.matches || [], priority: cloud.priority || [], visibleCols: cloud.visibleCols || null, umpiring: cloud.umpiring || [] };
     saveLocalState(); // cache locally
     setSyncBadge('ok');
     renderAll(); // re-render with cloud data
@@ -1022,6 +1083,7 @@ function aggregatePlayers() {
     const totalCatches   = pl.entries.reduce((s, e) => s + (+e.p.catches || 0), 0);
     const totalRunOuts   = pl.entries.reduce((s, e) => s + (+e.p.runOuts || 0), 0);
     const totalStumpings = pl.entries.reduce((s, e) => s + (+e.p.stumpings || 0), 0);
+    const totalUmpired   = pl.entries.filter(e => e.p.umpired).length;
     const avgSR          = totalBalls > 0 ? (totalRuns / totalBalls) * 100 : 0;
     const avgEco         = totalOvers > 0 ? totalRunsGiven / totalOvers : null;
     // Average over bowling matches only (not all matches) — fairer for part-time bowlers
@@ -1102,9 +1164,9 @@ function aggregatePlayers() {
       avgBatPos: battingEntries.length > 0 ? +avgBatPos.toFixed(1) : '—',
       totalRuns, totalRunsGiven, avgSR: +avgSR.toFixed(1),
       totalOvers: +totalOvers.toFixed(1), totalWkts,
-      totalExtras, totalCatches, totalRunOuts, totalStumpings,
+      totalExtras, totalCatches, totalRunOuts, totalStumpings, totalUmpired,
       avgEco: avgEco !== null ? +avgEco.toFixed(2) : null,
-      opp, perf, combined
+      opp, perf
     };
   });
 }
@@ -1125,7 +1187,7 @@ function statusBadge(combined) {
 
 // ── Tab switching ───────────────────────────────────────────────
 function switchTab(id, btn) {
-  if ((id === 'add-match' || id === 'selection') && !isAdmin) {
+  if ((id === 'add-match' || id === 'selection' || id === 'umpire') && !isAdmin) {
     document.getElementById('login-overlay').style.display = 'flex';
     setTimeout(() => document.getElementById('pin-input').focus(), 100);
     return;
@@ -1139,15 +1201,139 @@ function switchTab(id, btn) {
 }
 
 // ── Render all ──────────────────────────────────────────────────
+// ── Umpire Management ────────────────────────────────────────────
+
+function saveUmpireEntry() {
+  const player = document.getElementById('ump-player').value.trim();
+  const date   = document.getElementById('ump-date').value;
+  const match  = document.getElementById('ump-match').value.trim();
+  const status = document.getElementById('ump-status').value;
+  const notes  = document.getElementById('ump-notes').value.trim();
+  if (!player) { toast('⚠ Select a player'); return; }
+  if (!state.umpiring) state.umpiring = [];
+  const dup = state.umpiring.find(u => u.player === player && u.status === 'assigned');
+  if (dup && status === 'assigned') { toast('⚠ Player already has an active assignment'); return; }
+  state.umpiring.push({ id: Date.now(), player, date, match, status, notes });
+  saveState();
+  renderAll();
+  ['ump-player','ump-date','ump-match','ump-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ump-status').value = 'assigned';
+  toast(`✓ ${player} — umpiring ${status}`);
+}
+
+function toggleUmpStatus(id) {
+  if (!state.umpiring) return;
+  const entry = state.umpiring.find(u => u.id === id);
+  if (!entry) return;
+  entry.status = entry.status === 'assigned' ? 'completed' : 'assigned';
+  saveState(); renderAll();
+}
+
+function deleteUmpEntry(id) {
+  if (!state.umpiring) return;
+  state.umpiring = state.umpiring.filter(u => u.id !== id);
+  saveState(); renderAll();
+}
+
+function renderUmpireTab() {
+  if (!document.getElementById('ump-tbody')) return;
+  const entries = state.umpiring || [];
+  document.getElementById('ump-empty').style.display = entries.length === 0 ? 'block' : 'none';
+  document.getElementById('ump-table-wrap').style.display = entries.length === 0 ? 'none' : 'block';
+
+  // Sort: assigned first, then completed; alpha within each group
+  const sorted = [...entries].sort((a,b) => {
+    if (a.status !== b.status) return a.status === 'assigned' ? -1 : 1;
+    return a.player.localeCompare(b.player);
+  });
+
+  document.getElementById('ump-tbody').innerHTML = sorted.map(u => {
+    const statusBadge = u.status === 'completed'
+      ? '<span class="badge b-green">✓ Completed</span>'
+      : '<span class="badge" style="background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE">📅 Assigned</span>';
+    return `<tr style="${u.status==='completed'?'opacity:.7':''}">
+      <td><strong>${u.player}</strong></td>
+      <td style="white-space:nowrap">${u.date || '<span style="color:var(--ink4)">—</span>'}</td>
+      <td>${u.match ? `<span class="badge b-gray">${u.match}</span>` : '<span style="color:var(--ink4)">—</span>'}</td>
+      <td>${statusBadge}</td>
+      <td style="font-size:12px;color:var(--ink3)">${u.notes||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" style="font-size:11px;padding:2px 8px" onclick="toggleUmpStatus(${u.id})"
+          title="${u.status==='assigned'?'Mark completed':'Mark assigned again'}">${u.status==='assigned'?'✓ Done':'↩ Re-assign'}</button>
+        <button class="btn btn-sm" style="font-size:11px;padding:2px 8px;color:var(--red);border-color:var(--red);margin-left:4px" onclick="deleteUmpEntry(${u.id})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderUmpireDashboard() {
+  const el = document.getElementById('dash-umpire-body');
+  if (!el) return;
+  const entries = state.umpiring || [];
+
+  // Get all known players
+  const allPlayers = aggregatePlayers().map(p => p.name).sort();
+  if (allPlayers.length === 0) { el.innerHTML = '<div style="color:var(--ink3);font-size:13px">Add match data to see umpiring roster.</div>'; return; }
+
+  const completed = new Set(entries.filter(u => u.status === 'completed').map(u => u.player));
+  const assigned  = new Set(entries.filter(u => u.status === 'assigned').map(u => u.player));
+
+  // Build three groups
+  const doneList     = allPlayers.filter(p => completed.has(p));
+  const assignedList = allPlayers.filter(p => assigned.has(p) && !completed.has(p));
+  const pendingList  = allPlayers.filter(p => !completed.has(p) && !assigned.has(p));
+
+  const total = allPlayers.length;
+  const pct   = total > 0 ? Math.round(doneList.length / total * 100) : 0;
+
+  const chip = (name, bg, color) =>
+    `<span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:500;background:${bg};color:${color};margin:2px">${name}</span>`;
+
+  el.innerHTML = `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600">${doneList.length} / ${total} completed</span>
+        <span class="badge b-green">✓ Done ${doneList.length}</span>
+        <span class="badge" style="background:#F5F3FF;color:#7C3AED">📅 Assigned ${assignedList.length}</span>
+        <span class="badge b-gray">⏳ Pending ${pendingList.length}</span>
+      </div>
+      <div style="background:#E2E8F0;border-radius:8px;height:8px;overflow:hidden">
+        <div style="background:var(--grn);height:100%;width:${pct}%;border-radius:8px;transition:width .4s"></div>
+      </div>
+    </div>
+    ${doneList.length > 0 ? `
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--grn-d);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">✓ Completed</div>
+      <div>${doneList.map(n => chip(n, '#DCFCE7', '#15803D')).join('')}</div>
+    </div>` : ''}
+    ${assignedList.length > 0 ? `
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:#6D28D9;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📅 Assigned (upcoming)</div>
+      <div>${assignedList.map(n => {
+        const entry = entries.find(u => u.player === n && u.status === 'assigned');
+        const matchTag = entry?.match ? ` <span style="font-size:10px;opacity:.7">M${entry.match}</span>` : '';
+        const dateTag  = entry?.date  ? ` <span style="font-size:10px;opacity:.7">${entry.date}</span>` : '';
+        return chip(n + matchTag + dateTag, '#F5F3FF', '#7C3AED');
+      }).join('')}</div>
+    </div>` : ''}
+    ${pendingList.length > 0 ? `
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">⏳ Yet to umpire</div>
+      <div>${pendingList.map(n => chip(n, '#F1F5F9', '#64748B')).join('')}</div>
+    </div>` : '<div style="font-size:12px;color:var(--grn-d);font-weight:600">🎉 All players have umpired!</div>'}`;
+}
+
 function renderAll() {
   updateHeaderMeta();
   renderDashboard();
+  renderUmpireDashboard();
   renderScores();
   renderPlayerProfile();
   renderPool();
   renderPriority();
   renderXI();
-  applyRole();  // reapply admin-action visibility after every render
+  renderUmpireTab();
+  applyRole();
 }
 
 function updateHeaderMeta() {
@@ -1164,23 +1350,20 @@ function updateHeaderMeta() {
 }
 
 // ── Dashboard ───────────────────────────────────────────────────
+function cycleTop5Sort(field) {
+  const sel = document.getElementById('top5-sort');
+  if (!sel) return;
+  const current = sel.value;
+  // Cycle: field-desc → field-asc → field-desc
+  sel.value = current === `${field}-desc` ? `${field}-asc` : `${field}-desc`;
+  renderDashboard();
+}
+
 function renderDashboard() {
-  const players = aggregatePlayers().sort((a,b) => b.combined - a.combined);
   const hasData = state.matches.length > 0;
   document.getElementById('dash-empty').style.display = hasData ? 'none' : 'block';
   document.getElementById('dash-content').style.display = hasData ? 'block' : 'none';
   if (!hasData) return;
-
-  // Top 5
-  const top5 = players.slice(0, 5);
-  document.getElementById('dash-top5').innerHTML = top5.map((p, i) => `
-    <tr>
-      <td><span class="rank rank-${i+1}">${i+1}</span></td>
-      <td><strong>${p.name}</strong></td>
-      <td class="num">${p.opp}</td>
-      <td class="num">${p.perf}</td>
-      <td class="num"><strong>${p.combined}</strong></td>
-    </tr>`).join('');
 
   // Matches
   document.getElementById('dash-matches').innerHTML = [...state.matches].reverse().map(m => {
@@ -1234,7 +1417,7 @@ async function saveCloudCredentials() {
     setSyncBadge('ok');
     // Merge cloud data if it has matches
     if (data.matches && data.matches.length > 0) {
-      state = { matches: data.matches, priority: data.priority || [], visibleCols: data.visibleCols || null };
+      state = { matches: data.matches, priority: data.priority || [], visibleCols: data.visibleCols || null, umpiring: data.umpiring || [] };
       saveLocalState();
       renderAll();
     } else if (state.matches.length > 0) {
@@ -1271,12 +1454,13 @@ const ALL_COLS = [
   { id:'avgEco',   label:'Avg Economy', group:'bowling'  },
   { id:'extras',   label:'Extras',      group:'bowling'  },
   { id:'fielding', label:'Fielding',     group:'bowling'  },
+  { id:'umpiring', label:'Umpiring',     group:'bowling'  },
   { id:'opp',      label:'Opportunity', group:'scores',  alwaysOn:true },
   { id:'perf',     label:'Performance', group:'scores',  alwaysOn:true },
-  { id:'combined', label:'Combined',    group:'scores',  alwaysOn:true },
+
 ];
 
-const DEFAULT_COLS = ['rank','player','matches','runs','avgSR','wkts','avgEco','extras','opp','perf','combined'];
+const DEFAULT_COLS = ['rank','player','matches','runs','avgSR','wkts','avgEco','extras','opp','perf'];
 
 // Column visibility — stored in state so it persists via JSONBin cloud sync
 function getVisibleCols() {
@@ -1397,7 +1581,7 @@ function renderPlayerProfile() {
     <div class="metric"><div class="m-val" style="color:var(--grn-d)">${agg.matches}</div><div class="m-label">Matches</div><div class="m-sub">Played</div></div>
     <div class="metric"><div class="m-val">${agg.opp}</div><div class="m-label">Opportunity</div><div class="m-sub">Out of 100</div></div>
     <div class="metric"><div class="m-val">${agg.perf}</div><div class="m-label">Performance</div><div class="m-sub">Out of 100</div></div>
-    <div class="metric"><div class="m-val" style="color:var(--grn-d);font-size:28px"><strong>${agg.combined}</strong></div><div class="m-label">Combined</div><div class="m-sub">Out of 100</div></div>`;
+    ${(agg.totalUmpired||0) > 0 ? `<div class="metric"><div class="m-val" style="color:#7C3AED;font-weight:700">${agg.totalUmpired}</div><div class="m-label">Umpired</div><div class="m-sub">Matches</div></div>` : ''}`;
 
   // ── Batting summary ──────────────────────────────────────────
   const batEntries = entries.filter(e => !e.p.dnb && e.p.balls > 0);
@@ -1452,6 +1636,7 @@ function renderPlayerProfile() {
       <div><span style="color:var(--ink3)">Catches</span><strong style="float:right" style="color:var(--blu)">${totalCatches}</strong></div>
       <div><span style="color:var(--ink3)">Run-outs</span><strong style="float:right" style="color:var(--blu)">${totalRunOuts}</strong></div>
       ${totalStumping > 0 ? `<div><span style="color:var(--ink3)">Stumpings</span><strong style="float:right">${totalStumping}</strong></div>` : ''}
+      ${(agg.totalUmpired||0) > 0 ? `<div style="grid-column:span 2;border-top:1px solid var(--border);padding-top:6px;margin-top:2px"><span style="color:#7C3AED;font-weight:600">🟣 Umpired ${agg.totalUmpired} match${agg.totalUmpired>1?'es':''}</span></div>` : ''}
     </div>`;
 
   // ── Match-by-match history ───────────────────────────────────
@@ -1498,15 +1683,15 @@ function renderScores() {
 
   const sort = document.getElementById('score-sort').value;
   players.sort((a,b) => {
-    if (sort === 'name')    return a.name.localeCompare(b.name);
     if (sort === 'opp')     return b.opp - a.opp;
+    if (sort === 'name')    return a.name.localeCompare(b.name);
     if (sort === 'perf')    return b.perf - a.perf;
     if (sort === 'matches') return b.matches - a.matches;
     if (sort === 'runs')    return b.totalRuns - a.totalRuns;
     if (sort === 'wkts')    return b.totalWkts - a.totalWkts;
     if (sort === 'sr')      return b.avgSR - a.avgSR;
     if (sort === 'eco')     return (a.avgEco||99) - (b.avgEco||99);
-    return b.combined - a.combined;
+    return b.opp - a.opp;
   });
 
   const visible = getVisibleCols();
@@ -1535,6 +1720,9 @@ function renderScores() {
         case 'runsGiven': return `<td class="num">${p.totalOvers > 0 ? (p.totalRunsGiven||'—') : '—'}</td>`;
         case 'avgEco':    return `<td class="num">${p.avgEco !== null ? p.avgEco : '—'}</td>`;
         case 'extras':    return `<td class="num" style="color:${p.totalExtras>5?'var(--red)':'var(--ink3)'}">${p.totalExtras > 0 ? p.totalExtras : '—'}</td>`;
+        case 'umpiring': {
+          return `<td class="num" style="color:#7C3AED">${(p.totalUmpired||0) > 0 ? `<strong>${p.totalUmpired}</strong>` : '—'}</td>`;
+        }
         case 'fielding': {
           const f = (p.totalCatches||0) + (p.totalRunOuts||0) + (p.totalStumpings||0);
           const tip = [p.totalCatches>0?`${p.totalCatches}ct`:'', p.totalRunOuts>0?`${p.totalRunOuts}ro`:'', p.totalStumpings>0?`${p.totalStumpings}st`:''].filter(Boolean).join(' ');
@@ -1542,7 +1730,6 @@ function renderScores() {
         }
         case 'opp':       return `<td>${scoreBar(p.opp)}</td>`;
         case 'perf':      return `<td>${scoreBar(p.perf)}</td>`;
-        case 'combined':  return `<td>${scoreBar(p.combined)}</td>`;
         default:          return '<td>—</td>';
       }
     });
@@ -1607,7 +1794,7 @@ let selectedPool = new Set();
 function renderPool() {
   const el = document.getElementById('pool-list');
   if (!el) return;
-  const players = aggregatePlayers().sort((a,b) => b.combined - a.combined);
+  const players = aggregatePlayers().sort((a,b) => b.opp - a.opp);
   const priorityNames = new Set(state.priority.map(p => p.name.toLowerCase()));
 
   if (players.length === 0) {
@@ -1623,11 +1810,11 @@ function renderPool() {
     const pd = players.find(p => p.name === name);
     const isPriority = priorityNames.has(name.toLowerCase());
     const isChecked = selectedPool.has(name);
-    const score = pd ? pd.combined : '⭐';
+    const score = pd ? pd.opp : '⭐';
     return `<label class="pool-item${isPriority ? ' priority-pool' : ''}${isChecked ? ' checked' : ''}" onclick="togglePool('${name.replace(/'/g,"\\'")}',this)">
       <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation();togglePool('${name.replace(/'/g,"\\'")}',this.closest('.pool-item'))"/>
       <span class="pool-name">${name}${isPriority ? ' ⭐' : ''}</span>
-      <span class="pool-score" style="color:${pd ? (pd.combined>=70?'var(--grn-d)':pd.combined>=45?'var(--sun-d)':'var(--red)') : 'var(--sun-d)'}">${score}</span>
+      <span class="pool-score" style="color:${pd ? (pd.opp>=60?'var(--grn-d)':pd.opp>=25?'var(--sun-d)':'var(--red)') : 'var(--sun-d)'}">${score}</span>
     </label>`;
   }).join('');
 }
@@ -1661,7 +1848,7 @@ function buildXII() {
 function renderXI() {
   const el = document.getElementById('xi-list');
   if (!el) return;
-  const allPlayers = aggregatePlayers().sort((a,b) => b.combined - a.combined);
+  const allPlayers = aggregatePlayers().sort((a,b) => b.opp - a.opp);
   const playerMap = {};
   allPlayers.forEach(p => { playerMap[p.name] = p; });
 
@@ -1696,7 +1883,7 @@ function renderXI() {
   });
   // 3. Best from pool by combined score
   pool.forEach(p => {
-    if (selected.length < 12 && !usedNames.has(p.name)) { selected.push({ name: p.name, source: 'score', score: p.combined }); usedNames.add(p.name); }
+    if (selected.length < 12 && !usedNames.has(p.name)) { selected.push({ name: p.name, source: 'score', score: p.opp }); usedNames.add(p.name); }
   });
   // 4. Priority-only players in pool
   priorityOnlyInPool.forEach(name => {
@@ -1705,8 +1892,8 @@ function renderXI() {
 
   el.innerHTML = `<div class="xi-grid">` + selected.map((s, i) => {
     const pd = playerMap[s.name];
-    const score = pd ? pd.combined : '⭐';
-    const scoreColor = pd ? (pd.combined>=70?'var(--grn)':pd.combined>=45?'var(--sun-d)':'var(--red)') : 'var(--sun-d)';
+    const score = pd ? pd.opp : '⭐';
+    const scoreColor = pd ? (pd.opp>=60?'var(--grn)':pd.opp>=25?'var(--sun-d)':'var(--red)') : 'var(--sun-d)';
     const isEleven = i < 11;
     let extra = '', cls = '';
 
@@ -2243,6 +2430,14 @@ function addPlayerRow(data = {}) {
         value="${data.wkts!==undefined&&data.wkts!==''?data.wkts:''}"${didBowl?'':' disabled'}/></div>
       <div><div class="pr-col-lbl" style="color:var(--red)">Extras (W+NB)</div><input type="number" ${n} placeholder="" min="0" class="pr-extras"
         value="${data.extras!==undefined&&data.extras!==''?data.extras:''}"${didBowl?'':' disabled'} style="border-color:#FECACA"/></div>
+      <div><div class="pr-col-lbl" style="color:#7C3AED">Umpire?</div>
+        <div style="display:flex;align-items:center;justify-content:center;padding:6px 0">
+          <label class="dnb-toggle${data.umpired?' active':''}" style="color:#7C3AED">
+            <input type="checkbox" class="pr-umpired" onchange="toggleUmpired('${id}',this.checked)"
+              ${data.umpired?' checked':''} style="accent-color:#7C3AED">Ump
+          </label>
+        </div>
+      </div>
     </div>`;
   document.getElementById('players-container').appendChild(div);
 }
@@ -2342,6 +2537,13 @@ function toggleNotOut(rowId, checked) {
   if (noLabel) noLabel.classList.toggle('active', checked);
 }
 
+function toggleUmpired(rowId, checked) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  const lbl = row.querySelector('.pr-umpired')?.closest('label');
+  if (lbl) lbl.classList.toggle('active', checked);
+}
+
 function toggleBowled(rowId, checked) {
   const row = document.getElementById(rowId);
   if (!row) return;
@@ -2405,6 +2607,8 @@ function getPlayerRows() {
       wkts:      bowled ? (+row.querySelector('.pr-wkts').value || 0)       : 0,
       runsGiven: bowled ? (+row.querySelector('.pr-runs-given').value || 0) : 0,
       extras:    bowled ? (+row.querySelector('.pr-extras').value || 0)     : 0,
+      // Umpired — independent of bowling
+      umpired:   row.querySelector('.pr-umpired')?.checked || false,
     };
   }).filter(p => p.name);
 }
@@ -2599,11 +2803,11 @@ function removePriority(i) {
 
 // ── Export ────────────────────────────────────────────────────────
 function exportCSV() {
-  const players = aggregatePlayers().sort((a,b) => b.combined - a.combined);
-  let csv = 'Rank,Player,Matches,AvgBatPos,TotalRuns,AvgSR,TotalOvers,TotalWkts,AvgEconomy,Opportunity,Performance,Combined,Status\n';
+  const players = aggregatePlayers().sort((a,b) => b.opp - a.opp);
+  let csv = 'Rank,Player,Matches,AvgBatPos,TotalRuns,AvgSR,TotalOvers,TotalWkts,AvgEconomy,Opportunity,Performance,Umpired\n';
   players.forEach((p, i) => {
-    const status = p.combined >= 70 ? 'Strong Pick' : p.combined >= 50 ? 'Consider' : p.combined >= 35 ? 'Developing' : 'Needs Work';
-    csv += `${i+1},"${p.name}",${p.matches},${p.avgBatPos},${p.totalRuns},${p.avgSR},${p.totalOvers},${p.totalWkts},${p.avgEco??''},${p.opp},${p.perf},${p.combined},${status}\n`;
+    const status = p.opp >= 60 ? 'Strong Pick' : p.opp >= 25 ? 'Consider' : 'Developing';
+    csv += `${i+1},"${p.name}",${p.matches},${p.avgBatPos},${p.totalRuns},${p.avgSR},${p.totalOvers},${p.totalWkts},${p.avgEco??''},${p.opp},${p.perf},${p.totalUmpired||0}\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
